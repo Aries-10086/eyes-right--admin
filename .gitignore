@@ -1,0 +1,30 @@
+# Test images (keep overlay asset)
+2C6CA32667C33B938D0D07247472503F*
+67292FC6BDB97683A439D8605846F875*
+D5776F6F4708FD6FD9664C003B4EACE2*
+IMG_20260819_142559..png
+comment_*
+eyes_redraw.png
+
+# Dataset (large files)
+dataset/pet_face_detection_dataset_1/
+dataset/pet_face_detection_dataset_1.zip
+dataset/_download.py
+
+# Ultralytics auto-downloaded datasets
+datasets/
+
+# Pre-trained weights
+yolov8n-pose.pt
+
+# Training runs
+runs/
+
+# Python
+__pycache__/
+*.pyc
+.DS_Store
+
+# Weights
+weights/
+*.onnx

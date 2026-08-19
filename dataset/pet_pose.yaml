@@ -1,0 +1,12 @@
+# Auto-generated for YOLOv8n-pose pet eyes
+path: /Users/mac/Desktop/画眼睛/dataset/pet_face_detection_dataset_1
+train: images/train
+val: images/val
+test: images/test
+
+nc: 1
+names:
+  0: pet
+
+kpt_shape: [3, 3]
+flip_idx: [1, 0, 2]
