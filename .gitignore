@@ -29,6 +29,7 @@ __pycache__/
 weights/
 *.onnx
 !EyesRightMac/Sources/EyesRightMac/Resources/pet_eye_best.onnx
+!EyesRightWin/resources/pet_eye_best.onnx
 
 # Mac app build
 EyesRightMac/.build/
@@ -41,3 +42,9 @@ EyesRightMac/python_ref.png
 EyesRightMac/Sources/EyesRightMac/Resources/AppIcon_preview.png
 EyesRightMac/Sources/EyesRightMac/Resources/AppIcon_1024.png
 EyesRightMac/dist/dmg_stage/
+
+# Windows app build
+EyesRightWin/.venv/
+EyesRightWin/build/
+EyesRightWin/dist/
+EyesRightWin/*.spec.bak
