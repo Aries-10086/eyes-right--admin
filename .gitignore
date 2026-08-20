@@ -28,3 +28,16 @@ __pycache__/
 # Weights
 weights/
 *.onnx
+!EyesRightMac/Sources/EyesRightMac/Resources/pet_eye_best.onnx
+
+# Mac app build
+EyesRightMac/.build/
+EyesRightMac/.swiftpm/
+EyesRightMac/Eyes Right.app
+EyesRightMac/dist/
+EyesRightMac/icon.iconset/
+EyesRightMac/test_output.png
+EyesRightMac/python_ref.png
+EyesRightMac/Sources/EyesRightMac/Resources/AppIcon_preview.png
+EyesRightMac/Sources/EyesRightMac/Resources/AppIcon_1024.png
+EyesRightMac/dist/dmg_stage/
