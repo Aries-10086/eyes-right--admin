@@ -86,7 +86,8 @@ final class AppViewModel: ObservableObject {
 
                 await MainActor.run {
                     self.sourceImage = ImageProcessor.nsImage(from: source)
-                    self.resultImage = ImageProcessor.nsImage(from: result, flipForDisplay: true)
+                    // EyeOverlay now composites in CG bottom-left space; no extra flip.
+                    self.resultImage = ImageProcessor.nsImage(from: result)
                     self.isProcessing = false
                     self.statusMessage = "完成：\(url.lastPathComponent)"
                 }

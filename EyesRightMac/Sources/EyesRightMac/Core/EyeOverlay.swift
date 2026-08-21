@@ -20,6 +20,8 @@ enum EyeOverlay {
     ) -> CGImage? {
         let width = base.width
         let height = base.height
+        let overlayWidth = overlay.width
+        let overlayHeight = overlay.height
 
         var scaleBoost: CGFloat = 1.0
         if pair.boxWidth > 0 {
@@ -37,12 +39,24 @@ enum EyeOverlay {
             scaleBoost = neededScale / baseScale
         }
 
-        // Top-left coordinate space (same as OpenCV / Python overlay_eyes.py)
+        // Detector / overlay template use top-left coords (OpenCV). CGContext is
+        // bottom-left — convert both sides so the similarity matches Python.
+        let srcLeft = CGPoint(
+            x: OverlayConstants.leftEye.x,
+            y: CGFloat(overlayHeight) - OverlayConstants.leftEye.y
+        )
+        let srcRight = CGPoint(
+            x: OverlayConstants.rightEye.x,
+            y: CGFloat(overlayHeight) - OverlayConstants.rightEye.y
+        )
+        let dstLeft = CGPoint(x: pair.left.x, y: CGFloat(height) - pair.left.y)
+        let dstRight = CGPoint(x: pair.right.x, y: CGFloat(height) - pair.right.y)
+
         let transform = similarityTransform(
-            srcLeft: OverlayConstants.leftEye,
-            srcRight: OverlayConstants.rightEye,
-            dstLeft: pair.left,
-            dstRight: pair.right,
+            srcLeft: srcLeft,
+            srcRight: srcRight,
+            dstLeft: dstLeft,
+            dstRight: dstRight,
             scaleBoost: scaleBoost
         )
 
@@ -59,12 +73,9 @@ enum EyeOverlay {
             return nil
         }
 
-        context.translateBy(x: 0, y: CGFloat(height))
-        context.scaleBy(x: 1, y: -1)
-
         context.draw(base, in: CGRect(x: 0, y: 0, width: width, height: height))
         context.concatenate(transform)
-        context.draw(overlay, in: CGRect(x: 0, y: 0, width: overlay.width, height: overlay.height))
+        context.draw(overlay, in: CGRect(x: 0, y: 0, width: overlayWidth, height: overlayHeight))
 
         return context.makeImage()
     }

@@ -6,7 +6,7 @@ enum EyesRightMain {
         do {
             let pipeline = try EyePipeline()
             let result = try pipeline.processImage(at: input)
-            let image = ImageProcessor.nsImage(from: result, flipForDisplay: true)
+            let image = ImageProcessor.nsImage(from: result)
             guard let tiff = image.tiffRepresentation,
                   let bitmap = NSBitmapImageRep(data: tiff),
                   let data = bitmap.representation(using: .png, properties: [:])
