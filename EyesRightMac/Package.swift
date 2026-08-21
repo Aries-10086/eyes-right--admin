@@ -20,6 +20,7 @@ let package = Package(
             resources: [
                 .copy("Resources/pet_eye_best.onnx"),
                 .copy("Resources/IMG_20260819_142559_cutout.png"),
+                .copy("Resources/guang_overlay.jpg"),
             ]
         ),
     ]

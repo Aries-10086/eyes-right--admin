@@ -76,6 +76,15 @@ struct ContentView: View {
 
             Spacer()
 
+            Picker("贴图模式", selection: $viewModel.overlayMode) {
+                ForEach(OverlayMode.allCases) { mode in
+                    Text(mode.rawValue).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .frame(maxWidth: 220)
+            .disabled(viewModel.isProcessing)
+
             HStack(spacing: 8) {
                 Button {
                     viewModel.openImage()
