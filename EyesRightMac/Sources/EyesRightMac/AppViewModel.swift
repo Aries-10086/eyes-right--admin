@@ -10,10 +10,13 @@ final class AppViewModel: ObservableObject {
     @Published var statusMessage = ""
     @Published var overlayMode: OverlayMode = .ahAhAh {
         didSet {
-            guard oldValue != overlayMode, sourceURL != nil else { return }
+            liveSession.setOverlayMode(overlayMode)
+            guard oldValue != overlayMode, sourceURL != nil, !liveSession.isRunning else { return }
             reprocessCurrent()
         }
     }
+
+    let liveSession = LiveSessionController()
 
     private var pipeline: EyePipeline?
     private var sourceURL: URL?
@@ -44,6 +47,15 @@ final class AppViewModel: ObservableObject {
 
     func handleDrop(url: URL) {
         process(url: url)
+    }
+
+    func startRegionOverlay() {
+        liveSession.setOverlayMode(overlayMode)
+        liveSession.startRegionEyeOverlay()
+    }
+
+    func stopRegionOverlay() {
+        liveSession.stop()
     }
 
     func saveResult() {

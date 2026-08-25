@@ -176,6 +176,43 @@ enum EyeOverlay {
         return context.makeImage()
     }
 
+    /// 仅绘制贴图到透明画布（区域实时 overlay 用，不画底图）
+    static func renderOverlayOnly(
+        canvasWidth: Int,
+        canvasHeight: Int,
+        mode: OverlayMode,
+        pair: EyePair,
+        dualOverlay: CGImage,
+        guangOverlay: CGImage
+    ) -> CGImage? {
+        guard let blank = clearCanvas(width: canvasWidth, height: canvasHeight) else {
+            return nil
+        }
+        switch mode {
+        case .ahAhAh:
+            return apply(to: blank, overlay: dualOverlay, pair: pair)
+        case .addLight:
+            return applyPerEye(to: blank, sticker: guangOverlay, pair: pair, mirrorRight: false)
+        }
+    }
+
+    private static func clearCanvas(width: Int, height: Int) -> CGImage? {
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(
+            data: nil,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: width * 4,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            return nil
+        }
+        context.clear(CGRect(x: 0, y: 0, width: width, height: height))
+        return context.makeImage()
+    }
+
     private static func drawSticker(
         _ sticker: CGImage,
         in context: CGContext,

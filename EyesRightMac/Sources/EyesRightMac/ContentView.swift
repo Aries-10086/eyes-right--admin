@@ -23,7 +23,7 @@ struct ContentView: View {
             }
         }
         .background {
-            PhotoDropTarget(isEnabled: !viewModel.isProcessing) { url in
+            PhotoDropTarget(isEnabled: !viewModel.isProcessing && !viewModel.liveSession.isRunning) { url in
                 viewModel.handleDrop(url: url)
             } onTargeted: { targeted in
                 viewModel.isDropTargeted = targeted
@@ -51,70 +51,157 @@ struct ContentView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 16) {
-            HStack(spacing: 12) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [AppTheme.fireflyMint, AppTheme.fireflyTeal, AppTheme.fireflyPink.opacity(0.8)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
+        VStack(spacing: 0) {
+            HStack(spacing: 16) {
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [AppTheme.fireflyMint, AppTheme.fireflyTeal, AppTheme.fireflyPink.opacity(0.8)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
                             )
-                        )
-                        .frame(width: 40, height: 40)
-                        .shadow(color: AppTheme.fireflyMint.opacity(0.38), radius: 10, y: 4)
-                    Text("◉◉")
-                        .font(.system(size: 13, weight: .black, design: .rounded))
-                        .foregroundStyle(.white)
+                            .frame(width: 40, height: 40)
+                            .shadow(color: AppTheme.fireflyMint.opacity(0.38), radius: 10, y: 4)
+                        Text("◉◉")
+                            .font(.system(size: 13, weight: .black, design: .rounded))
+                            .foregroundStyle(.white)
+                    }
+
+                    Text("Eyes Right")
+                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                        .foregroundStyle(AppTheme.textPrimary)
                 }
 
-                Text("Eyes Right")
-                    .font(.system(size: 20, weight: .semibold, design: .rounded))
-                    .foregroundStyle(AppTheme.textPrimary)
+                Spacer()
+
+                Picker("贴图模式", selection: $viewModel.overlayMode) {
+                    ForEach(OverlayMode.allCases) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 220)
+                .disabled(viewModel.isProcessing)
+
+                HStack(spacing: 8) {
+                    Button {
+                        viewModel.openImage()
+                    } label: {
+                        Label("选择图片", systemImage: "photo.on.rectangle.angled")
+                            .font(.system(size: 13, weight: .medium))
+                            .padding(.horizontal, 4)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(AppTheme.accentDeep)
+                    .disabled(viewModel.isProcessing || viewModel.liveSession.isRunning)
+                    .keyboardShortcut("o")
+
+                    if viewModel.liveSession.isRunning {
+                        Button {
+                            viewModel.liveSession.togglePause()
+                        } label: {
+                            Label(
+                                viewModel.liveSession.isPaused ? "继续" : "暂停",
+                                systemImage: viewModel.liveSession.isPaused ? "play.fill" : "pause.fill"
+                            )
+                            .font(.system(size: 13, weight: .medium))
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(AppTheme.accentDeep)
+
+                        Button {
+                            viewModel.stopRegionOverlay()
+                        } label: {
+                            Label("结束区域贴眼", systemImage: "stop.fill")
+                                .font(.system(size: 13, weight: .medium))
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.red)
+                    } else {
+                        Button {
+                            viewModel.startRegionOverlay()
+                        } label: {
+                            Label("区域贴眼", systemImage: "rectangle.dashed.badge.record")
+                                .font(.system(size: 13, weight: .medium))
+                                .padding(.horizontal, 4)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(AppTheme.accentDeep)
+                        .disabled(viewModel.isProcessing)
+                        .keyboardShortcut("r", modifiers: [.command])
+                    }
+
+                    Button {
+                        viewModel.saveResult()
+                    } label: {
+                        Label("保存结果", systemImage: "square.and.arrow.down")
+                            .font(.system(size: 13, weight: .medium))
+                            .padding(.horizontal, 4)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(AppTheme.accentDeep)
+                    .disabled(viewModel.resultImage == nil || viewModel.isProcessing || viewModel.liveSession.isRunning)
+                    .keyboardShortcut("s")
+                }
             }
+            .padding(.horizontal, 22)
+            .padding(.top, 28)
+            .padding(.bottom, 10)
+
+            if viewModel.liveSession.isRunning || !viewModel.liveSession.statusText.isEmpty {
+                liveStatusBar
+            }
+        }
+        .background(Color.white.opacity(0.82))
+    }
+
+    private var liveStatusBar: some View {
+        HStack(spacing: 12) {
+            Circle()
+                .fill(viewModel.liveSession.isRunning
+                      ? (viewModel.liveSession.isPaused ? Color.orange : AppTheme.fireflyMint)
+                      : AppTheme.muted)
+                .frame(width: 8, height: 8)
+            Text(viewModel.liveSession.statusText.isEmpty ? viewModel.statusMessage : viewModel.liveSession.statusText)
+                .font(.system(size: 12))
+                .foregroundStyle(AppTheme.textPrimary)
+                .lineLimit(1)
 
             Spacer()
 
-            Picker("贴图模式", selection: $viewModel.overlayMode) {
-                ForEach(OverlayMode.allCases) { mode in
-                    Text(mode.rawValue).tag(mode)
+            if viewModel.liveSession.isRunning {
+                Picker(
+                    "帧率",
+                    selection: Binding(
+                        get: { viewModel.liveSession.fpsPreset },
+                        set: { viewModel.liveSession.fpsPreset = $0 }
+                    )
+                ) {
+                    ForEach(LiveFPSPreset.allCases) { preset in
+                        Text(preset.title).tag(preset)
+                    }
                 }
-            }
-            .pickerStyle(.segmented)
-            .frame(maxWidth: 220)
-            .disabled(viewModel.isProcessing)
+                .pickerStyle(.menu)
+                .frame(width: 110)
 
-            HStack(spacing: 8) {
-                Button {
-                    viewModel.openImage()
-                } label: {
-                    Label("选择图片", systemImage: "photo.on.rectangle.angled")
-                        .font(.system(size: 13, weight: .medium))
-                        .padding(.horizontal, 4)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(AppTheme.accentDeep)
-                .disabled(viewModel.isProcessing)
-                .keyboardShortcut("o")
-
-                Button {
-                    viewModel.saveResult()
-                } label: {
-                    Label("保存结果", systemImage: "square.and.arrow.down")
-                        .font(.system(size: 13, weight: .medium))
-                        .padding(.horizontal, 4)
-                }
-                .buttonStyle(.bordered)
-                .tint(AppTheme.accentDeep)
-                .disabled(viewModel.resultImage == nil || viewModel.isProcessing)
-                .keyboardShortcut("s")
+                Toggle(
+                    "点击穿透",
+                    isOn: Binding(
+                        get: { viewModel.liveSession.clickThrough },
+                        set: { viewModel.liveSession.clickThrough = $0 }
+                    )
+                )
+                .toggleStyle(.switch)
+                .controlSize(.small)
+                .frame(width: 110)
             }
         }
         .padding(.horizontal, 22)
-        .padding(.top, 28)
-        .padding(.bottom, 16)
-        .background(Color.white.opacity(0.82))
+        .padding(.vertical, 8)
+        .background(Color.white.opacity(0.92))
     }
 
     private var workspace: some View {

@@ -41,6 +41,10 @@ struct EyesRightMacApp: App {
                     viewModel.openImage()
                 }
                 .keyboardShortcut("o")
+                Button("区域贴眼…") {
+                    viewModel.startRegionOverlay()
+                }
+                .keyboardShortcut("r", modifiers: [.command])
             }
             CommandGroup(after: .saveItem) {
                 Button("保存结果…") {
@@ -48,6 +52,15 @@ struct EyesRightMacApp: App {
                 }
                 .keyboardShortcut("s")
                 .disabled(viewModel.resultImage == nil)
+                Divider()
+                Button(viewModel.liveSession.isPaused ? "继续区域贴眼" : "暂停区域贴眼") {
+                    viewModel.liveSession.togglePause()
+                }
+                .disabled(!viewModel.liveSession.isRunning)
+                Button("结束区域贴眼") {
+                    viewModel.stopRegionOverlay()
+                }
+                .disabled(!viewModel.liveSession.isRunning)
             }
         }
     }

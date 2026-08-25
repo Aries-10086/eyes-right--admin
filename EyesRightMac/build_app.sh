@@ -34,9 +34,24 @@ if [ -d "$BUILD_DIR/$BUNDLE_NAME" ]; then
   cp -R "$BUILD_DIR/$BUNDLE_NAME" "$APP_DIR/Contents/Resources/"
 fi
 
-echo "▶ Ad-hoc signing…"
-codesign --force --sign - "$APP_DIR/Contents/MacOS/EyesRightMac"
-codesign --force --sign - "$APP_DIR"
+echo "▶ Code signing…"
+# Prefer Apple Development / any valid identity — ad-hoc is ignored by Screen Recording TCC on macOS 15+
+SIGN_ID="$(security find-identity -v -p codesigning 2>/dev/null | awk -F'\"' '/Apple Development|Developer ID Application|Mac Developer/{print $2; exit}')"
+if [ -z "${SIGN_ID:-}" ]; then
+  SIGN_ID="$(security find-identity -v -p codesigning 2>/dev/null | awk -F'\"' '/\"/{print $2; exit}')"
+fi
+if [ -n "${SIGN_ID:-}" ]; then
+  echo "   Using identity: $SIGN_ID"
+  codesign --force --options runtime --sign "$SIGN_ID" --identifier "com.eyesright.mac" "$APP_DIR/Contents/MacOS/EyesRightMac"
+  codesign --force --options runtime --sign "$SIGN_ID" --identifier "com.eyesright.mac" "$APP_DIR"
+else
+  echo "   ⚠ No Apple signing identity found — falling back to ad-hoc."
+  echo "   On macOS 15+/26, Screen Recording TCC often rejects ad-hoc apps even when the toggle looks ON."
+  echo "   Fix: install Xcode → Preferences → Accounts → Apple ID → Manage Certificates → Apple Development,"
+  echo "   then re-run this script."
+  codesign --force --sign - --identifier "com.eyesright.mac" "$APP_DIR/Contents/MacOS/EyesRightMac"
+  codesign --force --sign - --identifier "com.eyesright.mac" "$APP_DIR"
+fi
 
 echo "▶ Creating DMG…"
 mkdir -p "$DIST_DIR"

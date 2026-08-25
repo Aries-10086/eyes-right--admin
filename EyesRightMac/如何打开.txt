@@ -26,3 +26,13 @@ xattr -cr "/Applications/Eyes Right.app"
 注意
 - 需要 Apple 芯片 Mac（M1/M2/M3/M4）
 - 本软件完全本地运行，不会联网上传照片
+- 「区域贴眼」需要打开：系统设置 → 隐私与安全性 → 录屏与系统录音 → 允许 Eyes Right
+- 打开开关后必须「完全退出」再重新打开 App，权限才生效
+- 若开关已开仍提示被拒绝：删掉列表里的 Eyes Right，重开开关；仍不行多半是 ad-hoc 签名，需用 Apple 开发证书重签（见下方）
+- 建议用本地视频验收；部分流媒体因 DRM 可能采到黑帧
+
+区域贴眼一直被拒绝（macOS 15/26）
+1. 安装 Xcode，登录 Apple ID（免费即可）
+2. Xcode → Settings → Accounts → Manage Certificates → 点 + → Apple Development
+3. 终端执行：cd 到 EyesRightMac 目录，再运行 ./build_app.sh
+4. 打开系统设置删掉旧的 Eyes Right 录屏项，重新打开 App 并授权
