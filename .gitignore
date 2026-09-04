@@ -30,6 +30,7 @@ weights/
 *.onnx
 !EyesRightMac/Sources/EyesRightMac/Resources/pet_eye_best.onnx
 !EyesRightWin/resources/pet_eye_best.onnx
+!EyesRightFlutter/assets/models/pet_eye_best.onnx
 
 # Mac app build
 EyesRightMac/.build/
@@ -48,3 +49,11 @@ EyesRightWin/.venv/
 EyesRightWin/build/
 EyesRightWin/dist/
 EyesRightWin/*.spec.bak
+
+# Flutter
+EyesRightFlutter/.dart_tool/
+EyesRightFlutter/.flutter-plugins-dependencies
+EyesRightFlutter/.packages
+EyesRightFlutter/build/
+EyesRightFlutter/.ios/
+EyesRightFlutter/.android/

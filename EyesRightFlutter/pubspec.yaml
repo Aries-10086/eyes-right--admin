@@ -1,0 +1,30 @@
+name: eyes_right_flutter
+description: Eyes Right mobile — local pet-eye sticker (iOS / Android)
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  flutter_onnxruntime: ^1.6.0
+  image: ^4.5.4
+  image_picker: ^1.1.2
+  gal: ^2.3.1
+  path_provider: ^2.1.5
+  path: ^1.9.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/models/pet_eye_best.onnx
+    - assets/overlays/IMG_20260819_142559_cutout.png
+    - assets/overlays/guang_overlay.jpg
