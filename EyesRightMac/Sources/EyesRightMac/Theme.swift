@@ -1,18 +1,25 @@
 import SwiftUI
 
-/// 流萤印象配色 · 亮色底
+/// B 站印象粉白配色（与 Flutter 移动端对齐）
 enum AppTheme {
-    static let fireflyMint = Color(red: 0.49, green: 0.92, blue: 0.84)
-    static let fireflyTeal = Color(red: 0.37, green: 0.81, blue: 0.75)
-    static let fireflyAmber = Color(red: 1.0, green: 0.72, blue: 0.42)
-    static let fireflyPink = Color(red: 0.96, green: 0.78, blue: 0.82)
+    static let pink = Color(red: 0.984, green: 0.447, blue: 0.600) // #FB7299
+    static let pinkDeep = Color(red: 0.910, green: 0.353, blue: 0.518)
+    static let pinkSoft = Color(red: 1.0, green: 0.941, blue: 0.961)
+    static let pinkWash = Color(red: 1.0, green: 0.839, blue: 0.906)
+    static let blue = Color(red: 0.0, green: 0.631, blue: 0.839) // #00A1D6
 
-    static let accent = fireflyTeal
-    static let accentDeep = Color(red: 0.28, green: 0.68, blue: 0.62)
+    static let accent = pink
+    static let accentDeep = pinkDeep
 
-    static let canvas = Color(red: 0.99, green: 0.99, blue: 0.98)
-    static let panel = Color(red: 0.96, green: 0.98, blue: 0.97)
-    static let panelStroke = fireflyTeal.opacity(0.18)
-    static let textPrimary = Color(red: 0.12, green: 0.15, blue: 0.18)
-    static let muted = Color(red: 0.45, green: 0.50, blue: 0.52)
+    static let canvas = Color(red: 0.957, green: 0.957, blue: 0.957)
+    static let panel = Color.white
+    static let panelStroke = Color(red: 0.890, green: 0.898, blue: 0.906)
+    static let textPrimary = Color(red: 0.094, green: 0.098, blue: 0.110)
+    static let muted = Color(red: 0.580, green: 0.600, blue: 0.627)
+
+    // legacy aliases used by existing views
+    static let fireflyMint = pinkSoft
+    static let fireflyTeal = pink
+    static let fireflyAmber = blue
+    static let fireflyPink = pinkWash
 }
