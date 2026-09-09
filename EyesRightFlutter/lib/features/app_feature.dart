@@ -1,0 +1,90 @@
+import 'package:flutter/material.dart';
+
+import '../models/eye_models.dart';
+
+/// 可扩展功能模块（对齐 B 站「分区 / 频道」思路：先登记，再进首页创作）
+enum FeatureStatus { live, beta, comingSoon }
+
+class AppFeature {
+  const AppFeature({
+    required this.id,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.status,
+    this.badge,
+    this.overlayMode,
+  });
+
+  final String id;
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final FeatureStatus status;
+  final String? badge;
+  final OverlayMode? overlayMode;
+
+  bool get isAvailable => status != FeatureStatus.comingSoon;
+}
+
+/// 新功能只在这里登记即可出现在「玩法」页
+class FeatureCatalog {
+  static const List<AppFeature> all = [
+    AppFeature(
+      id: 'ah_ah_ah',
+      title: '啊啊啊',
+      subtitle: '双眼一体眼罩贴图',
+      icon: Icons.visibility_rounded,
+      status: FeatureStatus.live,
+      badge: '热门',
+      overlayMode: OverlayMode.ahAhAh,
+    ),
+    AppFeature(
+      id: 'add_light',
+      title: '加一道光',
+      subtitle: '左右眼各贴同一张图',
+      icon: Icons.auto_awesome_rounded,
+      status: FeatureStatus.live,
+      badge: '推荐',
+      overlayMode: OverlayMode.addLight,
+    ),
+    AppFeature(
+      id: 'region_live',
+      title: '区域贴眼',
+      subtitle: '框选屏幕区域实时贴图',
+      icon: Icons.crop_free_rounded,
+      status: FeatureStatus.comingSoon,
+      badge: '电脑端',
+    ),
+    AppFeature(
+      id: 'batch',
+      title: '批量贴眼',
+      subtitle: '一次处理多张照片',
+      icon: Icons.collections_rounded,
+      status: FeatureStatus.comingSoon,
+      badge: '即将上线',
+    ),
+    AppFeature(
+      id: 'video_frame',
+      title: '视频抽帧',
+      subtitle: '从视频截取正脸再贴眼',
+      icon: Icons.movie_filter_rounded,
+      status: FeatureStatus.comingSoon,
+      badge: '即将上线',
+    ),
+    AppFeature(
+      id: 'sticker_shop',
+      title: '贴图工坊',
+      subtitle: '更多眼罩与素材包',
+      icon: Icons.storefront_rounded,
+      status: FeatureStatus.comingSoon,
+      badge: '策划中',
+    ),
+  ];
+
+  static AppFeature byId(String id) =>
+      all.firstWhere((f) => f.id == id, orElse: () => all.first);
+
+  static List<AppFeature> get live =>
+      all.where((f) => f.status == FeatureStatus.live).toList();
+}
