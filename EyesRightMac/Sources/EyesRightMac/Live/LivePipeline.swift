@@ -6,6 +6,7 @@ final class LivePipeline: @unchecked Sendable {
     private let detector: PoseDetector
     private let dualOverlay: CGImage
     private let guangOverlay: CGImage
+    private let clownNoseOverlay: CGImage
 
     private let lock = NSLock()
     private var isBusy = false
@@ -27,6 +28,7 @@ final class LivePipeline: @unchecked Sendable {
         detector = try PoseDetector()
         dualOverlay = try EyeOverlay.loadOverlayImage()
         guangOverlay = try EyeOverlay.loadGuangOverlayImage()
+        clownNoseOverlay = try EyeOverlay.loadClownNoseImage()
     }
 
     struct Output {
@@ -68,7 +70,13 @@ final class LivePipeline: @unchecked Sendable {
         defer { lock.unlock() }
 
         if let raw = pairs.first {
-            let pair = smooth(raw)
+            let stabilized: EyePair
+            if mode == .clownNose {
+                stabilized = smooth(NoseRefiner.refine(raw, in: image))
+            } else {
+                stabilized = smooth(raw)
+            }
+            let pair = stabilized
             lastPair = pair
             missCount = 0
             let overlay = EyeOverlay.renderOverlayOnly(
@@ -77,7 +85,8 @@ final class LivePipeline: @unchecked Sendable {
                 mode: mode,
                 pair: pair,
                 dualOverlay: dualOverlay,
-                guangOverlay: guangOverlay
+                guangOverlay: guangOverlay,
+                clownNoseOverlay: clownNoseOverlay
             )
             return Output(overlayImage: overlay, pair: pair, detected: true)
         }
@@ -90,7 +99,8 @@ final class LivePipeline: @unchecked Sendable {
                 mode: mode,
                 pair: pair,
                 dualOverlay: dualOverlay,
-                guangOverlay: guangOverlay
+                guangOverlay: guangOverlay,
+                clownNoseOverlay: clownNoseOverlay
             )
             return Output(overlayImage: overlay, pair: pair, detected: false)
         }
@@ -116,6 +126,7 @@ final class LivePipeline: @unchecked Sendable {
             return EyePair(
                 left: last.left,
                 right: last.right,
+                nose: last.nose,
                 confidence: new.confidence,
                 boxWidth: last.boxWidth
             )
@@ -125,6 +136,7 @@ final class LivePipeline: @unchecked Sendable {
         return EyePair(
             left: Self.lerp(last.left, new.left, a),
             right: Self.lerp(last.right, new.right, a),
+            nose: Self.lerp(last.nose, new.nose, a),
             confidence: new.confidence,
             boxWidth: last.boxWidth * (1 - a) + new.boxWidth * a
         )

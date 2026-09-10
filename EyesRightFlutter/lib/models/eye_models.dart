@@ -7,7 +7,8 @@ import 'package:flutter/foundation.dart';
 /// Align with Mac `OverlayConstants` / `EyePair` / `OverlayMode`.
 enum OverlayMode {
   ahAhAh('啊啊啊'),
-  addLight('加一道光');
+  addLight('加一道光'),
+  clownNose('小丑鼻子');
 
   const OverlayMode(this.label);
   final String label;
@@ -17,12 +18,14 @@ class EyePair {
   const EyePair({
     required this.left,
     required this.right,
+    required this.nose,
     required this.confidence,
     required this.boxWidth,
   });
 
   final ui.Offset left;
   final ui.Offset right;
+  final ui.Offset nose;
   final double confidence;
   final double boxWidth;
 }
@@ -37,6 +40,8 @@ class OverlayConstants {
   static const perEyeSpreadBoost = 1.12;
   static const perEyeCoverRatio = 1.05;
   static const perEyeMaxWidthByHalfSpan = 1.35;
+  static const clownNoseWidthFromInterEye = 0.55;
+  static const noseConfThreshold = 0.12;
   static const maxLongEdge = 2048;
   static const inputSize = 640;
 }

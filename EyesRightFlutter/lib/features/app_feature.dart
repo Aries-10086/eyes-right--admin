@@ -49,6 +49,15 @@ class FeatureCatalog {
       overlayMode: OverlayMode.addLight,
     ),
     AppFeature(
+      id: 'clown_nose',
+      title: '小丑鼻子',
+      subtitle: '识别鼻尖贴上红色小丑鼻',
+      icon: Icons.sentiment_very_satisfied_rounded,
+      status: FeatureStatus.live,
+      badge: '新品',
+      overlayMode: OverlayMode.clownNose,
+    ),
+    AppFeature(
       id: 'region_live',
       title: '区域贴眼',
       subtitle: '框选屏幕区域实时贴图',

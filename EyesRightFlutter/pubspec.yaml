@@ -30,3 +30,4 @@ flutter:
     - assets/models/pet_eye_best.onnx
     - assets/overlays/IMG_20260819_142559_cutout.png
     - assets/overlays/guang_overlay.jpg
+    - assets/overlays/clown_nose.png

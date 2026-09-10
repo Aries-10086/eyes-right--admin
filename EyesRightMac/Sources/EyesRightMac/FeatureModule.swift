@@ -54,6 +54,15 @@ enum FeatureCatalog {
             overlayMode: .addLight
         ),
         FeatureModule(
+            id: "clown_nose",
+            title: "小丑鼻子",
+            subtitle: "识别鼻尖贴上红色小丑鼻",
+            badge: "新品",
+            status: .live,
+            systemImage: "nose.fill",
+            overlayMode: .clownNose
+        ),
+        FeatureModule(
             id: "region_live",
             title: "区域贴眼",
             subtitle: "框选屏幕区域实时贴图",

@@ -3,6 +3,8 @@ import CoreGraphics
 struct EyePair: Sendable {
     let left: CGPoint
     let right: CGPoint
+    /// 鼻尖（模型 kpt2）；缺失时用两眼中点略向下估
+    let nose: CGPoint
     let confidence: Float
     let boxWidth: CGFloat
 }
@@ -12,6 +14,8 @@ enum OverlayMode: String, CaseIterable, Identifiable, Sendable {
     case ahAhAh = "啊啊啊"
     /// Same image pasted on each eye (right eye not mirrored)
     case addLight = "加一道光"
+    /// Red clown nose on detected nose tip
+    case clownNose = "小丑鼻子"
 
     var id: String { rawValue }
 }
@@ -31,4 +35,9 @@ enum OverlayConstants {
     static let perEyeCoverRatio: CGFloat = 1.05
     /// 贴纸宽度上限，避免两张在中间严重重叠（相对半跨距）
     static let perEyeMaxWidthByHalfSpan: CGFloat = 1.35
+
+    /// 「小丑鼻子」：贴纸宽度相对两眼距（比脸宽更稳）
+    static let clownNoseWidthFromInterEye: CGFloat = 0.55
+    /// 鼻子关键点置信度下限；过低则回退到两眼中点下方
+    static let noseConfThreshold: Float = 0.12
 }

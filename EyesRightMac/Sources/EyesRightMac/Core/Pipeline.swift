@@ -31,19 +31,22 @@ final class EyePipeline: @unchecked Sendable {
     private let detector: PoseDetector
     private let dualOverlay: CGImage
     private let guangOverlay: CGImage
+    private let clownNoseOverlay: CGImage
 
     init() throws {
         detector = try PoseDetector()
         dualOverlay = try EyeOverlay.loadOverlayImage()
         guangOverlay = try EyeOverlay.loadGuangOverlayImage()
+        clownNoseOverlay = try EyeOverlay.loadClownNoseImage()
     }
 
     func processImage(at url: URL, mode: OverlayMode = .ahAhAh) throws -> CGImage {
         let source = try ImageProcessor.loadCGImage(from: url)
         let pairs = try detector.detect(in: source)
-        guard let pair = pairs.first else {
+        guard let raw = pairs.first else {
             throw PipelineError.noFaceDetected
         }
+        let pair = (mode == .clownNose) ? NoseRefiner.refine(raw, in: source) : raw
 
         let result: CGImage?
         switch mode {
@@ -56,6 +59,12 @@ final class EyePipeline: @unchecked Sendable {
                 sticker: guangOverlay,
                 pair: pair,
                 mirrorRight: false
+            )
+        case .clownNose:
+            result = EyeOverlay.applyClownNose(
+                to: source,
+                sticker: clownNoseOverlay,
+                pair: pair
             )
         }
 

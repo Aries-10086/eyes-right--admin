@@ -7,28 +7,34 @@ import '../inference/pose_detector.dart';
 import '../models/eye_models.dart';
 import 'eye_composer.dart';
 import 'image_codec.dart';
+import 'nose_refiner.dart';
 
 class EyePipeline {
   EyePipeline._({
     required PoseDetector detector,
     required ui.Image dualOverlay,
     required ui.Image guangOverlay,
+    required ui.Image clownNoseOverlay,
   })  : _detector = detector,
         _dualOverlay = dualOverlay,
-        _guangOverlay = guangOverlay;
+        _guangOverlay = guangOverlay,
+        _clownNoseOverlay = clownNoseOverlay;
 
   final PoseDetector _detector;
   final ui.Image _dualOverlay;
   final ui.Image _guangOverlay;
+  final ui.Image _clownNoseOverlay;
 
   static Future<EyePipeline> create() async {
     final detector = await PoseDetector.create();
     final dual = await _loadAssetImage('assets/overlays/IMG_20260819_142559_cutout.png');
     final guang = await _loadAssetImage('assets/overlays/guang_overlay.jpg');
+    final clown = await _loadAssetImage('assets/overlays/clown_nose.png');
     return EyePipeline._(
       detector: detector,
       dualOverlay: dual,
       guangOverlay: guang,
+      clownNoseOverlay: clown,
     );
   }
 
@@ -50,7 +56,10 @@ class EyePipeline {
 
     final base = await ImageCodec.toUiImage(prepared);
     try {
-      final pair = pairs.first;
+      final raw = pairs.first;
+      final pair = mode == OverlayMode.clownNose
+          ? NoseRefiner.refine(raw, prepared)
+          : raw;
       final ui.Image result;
       switch (mode) {
         case OverlayMode.ahAhAh:
@@ -66,6 +75,12 @@ class EyePipeline {
             pair: pair,
             mirrorRight: false,
           );
+        case OverlayMode.clownNose:
+          result = await EyeComposer.applyClownNose(
+            base: base,
+            sticker: _clownNoseOverlay,
+            pair: pair,
+          );
       }
       try {
         return await ImageCodec.encodePng(result);
@@ -77,15 +92,17 @@ class EyePipeline {
     }
   }
 
-  /// Debug helper: return prepared image with eye dots drawn.
+  /// Debug helper: return prepared image with eye/nose dots drawn.
   Future<Uint8List> debugKeypoints(Uint8List bytes) async {
     final prepared = ImageCodec.decodePrepared(bytes);
     final letterbox = ImageCodec.letterbox(prepared);
     final pairs = await _detector.detect(letterbox);
     final copy = img.Image.from(prepared);
     for (final pair in pairs) {
-      img.fillCircle(copy, x: pair.left.dx.round(), y: pair.left.dy.round(), radius: 6, color: img.ColorRgb8(0, 255, 0));
-      img.fillCircle(copy, x: pair.right.dx.round(), y: pair.right.dy.round(), radius: 6, color: img.ColorRgb8(255, 0, 0));
+      final refined = NoseRefiner.refine(pair, prepared);
+      img.fillCircle(copy, x: refined.left.dx.round(), y: refined.left.dy.round(), radius: 6, color: img.ColorRgb8(0, 255, 0));
+      img.fillCircle(copy, x: refined.right.dx.round(), y: refined.right.dy.round(), radius: 6, color: img.ColorRgb8(255, 0, 0));
+      img.fillCircle(copy, x: refined.nose.dx.round(), y: refined.nose.dy.round(), radius: 6, color: img.ColorRgb8(0, 160, 255));
     }
     return Uint8List.fromList(img.encodePng(copy));
   }
@@ -94,5 +111,6 @@ class EyePipeline {
     await _detector.close();
     _dualOverlay.dispose();
     _guangOverlay.dispose();
+    _clownNoseOverlay.dispose();
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -80,10 +81,28 @@ class PoseDetector {
     }
 
     final kptConf = bestKpts[0].$2 < bestKpts[1].$2 ? bestKpts[0].$2 : bestKpts[1].$2;
+    final interEye = hypot(right.dx - left.dx, right.dy - left.dy);
+    final mid = ui.Offset(
+      (left.dx + right.dx) / 2,
+      (left.dy + right.dy) / 2,
+    );
+    final nx = -(right.dy - left.dy) / math.max(interEye, 1e-6);
+    final ny = (right.dx - left.dx) / math.max(interEye, 1e-6);
+    // 缺鼻点时给额头侧先验，供 NoseRefiner 反射到鼻头
+    final foreheadCue = ui.Offset(
+      mid.dx - nx * interEye * 0.45,
+      mid.dy - ny * interEye * 0.45,
+    );
+    final noseConf = bestKpts.length > 2 ? bestKpts[2].$2 : 0.0;
+    final nose = noseConf >= OverlayConstants.noseConfThreshold
+        ? bestKpts[2].$1
+        : foreheadCue;
+
     return [
       EyePair(
         left: left,
         right: right,
+        nose: nose,
         confidence: bestScore < kptConf ? bestScore : kptConf,
         boxWidth: bestW / letterbox.scale,
       ),

@@ -92,6 +92,31 @@ class EyeComposer {
     return picture.toImage(base.width, base.height);
   }
 
+  /// 「小丑鼻子」：贴在鼻尖，随两眼连线略旋转
+  static Future<ui.Image> applyClownNose({
+    required ui.Image base,
+    required ui.Image sticker,
+    required EyePair pair,
+  }) async {
+    final dx = pair.right.dx - pair.left.dx;
+    final dy = pair.right.dy - pair.left.dy;
+    final interEye = math.max(hypot(dx, dy), 1e-6);
+    final faceRef = pair.boxWidth > 0 ? pair.boxWidth : interEye * 2.2;
+    final targetWidth = math.max(
+      interEye * OverlayConstants.clownNoseWidthFromInterEye,
+      faceRef * 0.16,
+    );
+    final scale = targetWidth / sticker.width;
+    final angle = math.atan2(dy, dx);
+
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+    canvas.drawImage(base, ui.Offset.zero, ui.Paint());
+    _drawSticker(canvas, sticker, pair.nose, scale, angle, false);
+    final picture = recorder.endRecording();
+    return picture.toImage(base.width, base.height);
+  }
+
   static void _drawSticker(
     ui.Canvas canvas,
     ui.Image sticker,

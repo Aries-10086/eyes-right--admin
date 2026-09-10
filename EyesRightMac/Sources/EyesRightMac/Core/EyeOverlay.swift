@@ -22,6 +22,16 @@ enum EyeOverlay {
         return image
     }
 
+    static func loadClownNoseImage() throws -> CGImage {
+        guard let url = AppResources.url(forResource: "clown_nose", withExtension: "png"),
+              let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
+        else {
+            throw PipelineError.overlayNotFound
+        }
+        return image
+    }
+
     /// 「啊啊啊」：整张双眼镜片一次贴上
     static func apply(
         to base: CGImage,
@@ -176,6 +186,56 @@ enum EyeOverlay {
         return context.makeImage()
     }
 
+    /// 「小丑鼻子」：单点贴在鼻尖，随两眼连线略旋转
+    static func applyClownNose(
+        to base: CGImage,
+        sticker: CGImage,
+        pair: EyePair
+    ) -> CGImage? {
+        let width = base.width
+        let height = base.height
+        let stickerW = CGFloat(sticker.width)
+        let stickerH = CGFloat(sticker.height)
+
+        let dx = pair.right.x - pair.left.x
+        let dy = pair.right.y - pair.left.y
+        let interEye = max(hypot(dx, dy), 1e-6)
+        let faceRef = pair.boxWidth > 0 ? pair.boxWidth : interEye * 2.2
+        let targetWidth = max(
+            interEye * OverlayConstants.clownNoseWidthFromInterEye,
+            faceRef * 0.16
+        )
+        let scale = targetWidth / stickerW
+        let angleTopLeft = atan2(dy, dx)
+        let angleCG = -angleTopLeft
+
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(
+            data: nil,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: width * 4,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            return nil
+        }
+
+        context.draw(base, in: CGRect(x: 0, y: 0, width: width, height: height))
+        drawSticker(
+            sticker,
+            in: context,
+            centerTopLeft: pair.nose,
+            imageHeight: height,
+            scale: scale,
+            angleCG: angleCG,
+            mirror: false,
+            stickerSize: CGSize(width: stickerW, height: stickerH)
+        )
+        return context.makeImage()
+    }
+
     /// 仅绘制贴图到透明画布（区域实时 overlay 用，不画底图）
     static func renderOverlayOnly(
         canvasWidth: Int,
@@ -183,7 +243,8 @@ enum EyeOverlay {
         mode: OverlayMode,
         pair: EyePair,
         dualOverlay: CGImage,
-        guangOverlay: CGImage
+        guangOverlay: CGImage,
+        clownNoseOverlay: CGImage
     ) -> CGImage? {
         guard let blank = clearCanvas(width: canvasWidth, height: canvasHeight) else {
             return nil
@@ -193,6 +254,8 @@ enum EyeOverlay {
             return apply(to: blank, overlay: dualOverlay, pair: pair)
         case .addLight:
             return applyPerEye(to: blank, sticker: guangOverlay, pair: pair, mirrorRight: false)
+        case .clownNose:
+            return applyClownNose(to: blank, sticker: clownNoseOverlay, pair: pair)
         }
     }
 

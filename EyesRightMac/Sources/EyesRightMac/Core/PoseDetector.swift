@@ -75,6 +75,20 @@ final class PoseDetector: @unchecked Sendable {
             swap(&left, &right)
         }
 
+        let interEye = hypot(right.x - left.x, right.y - left.y)
+        let mid = CGPoint(x: (left.x + right.x) / 2, y: (left.y + right.y) / 2)
+        // 两眼连线的法向（图像顶左，y 向下）；模型缺鼻点时给一个「额头侧」先验供 NoseRefiner 反射
+        let nx = -(right.y - left.y) / max(interEye, 1e-6)
+        let ny = (right.x - left.x) / max(interEye, 1e-6)
+        let foreheadCue = CGPoint(
+            x: mid.x - nx * interEye * 0.45,
+            y: mid.y - ny * interEye * 0.45
+        )
+        // 始终保留原始 kpt2（即便偏到额头）；由 NoseRefiner 校正到鼻头
+        let nose = (best.kpts.count > 2 && best.kpts[2].1 >= OverlayConstants.noseConfThreshold)
+            ? best.kpts[2].0
+            : foreheadCue
+
         let kptConf = min(best.kpts[0].1, best.kpts[1].1)
         let boxWidth = CGFloat(best.w / letterbox.scale)
 
@@ -82,6 +96,7 @@ final class PoseDetector: @unchecked Sendable {
             EyePair(
                 left: left,
                 right: right,
+                nose: nose,
                 confidence: min(best.score, kptConf),
                 boxWidth: boxWidth
             ),

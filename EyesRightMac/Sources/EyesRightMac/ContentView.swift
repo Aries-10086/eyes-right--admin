@@ -141,7 +141,7 @@ struct ContentView: View {
                         }
                     }
                     .pickerStyle(.segmented)
-                    .frame(maxWidth: 220)
+                    .frame(maxWidth: 300)
                     .disabled(viewModel.isProcessing)
                     .onChange(of: viewModel.overlayMode) { mode in
                         if let match = FeatureCatalog.live.first(where: { $0.overlayMode == mode }) {
