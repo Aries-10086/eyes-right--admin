@@ -4,6 +4,8 @@ import Foundation
 /// 帧调度：降频推理 + 时间平滑 + 丢失保持，减轻闪烁/抖动
 final class LivePipeline: @unchecked Sendable {
     private let detector: PoseDetector
+    private let animeDetector: AnimeEyeDetector
+    private let noseDetector: NosePoseDetector
     private let dualOverlay: CGImage
     private let guangOverlay: CGImage
     private let clownNoseOverlay: CGImage
@@ -23,9 +25,12 @@ final class LivePipeline: @unchecked Sendable {
     private let snapRatio: CGFloat = 0.35
 
     var overlayMode: OverlayMode = .ahAhAh
+    var faceKind: FaceKind = .pet
 
     init() throws {
         detector = try PoseDetector()
+        animeDetector = try AnimeEyeDetector()
+        noseDetector = try NosePoseDetector()
         dualOverlay = try EyeOverlay.loadOverlayImage()
         guangOverlay = try EyeOverlay.loadGuangOverlayImage()
         clownNoseOverlay = try EyeOverlay.loadClownNoseImage()
@@ -46,10 +51,11 @@ final class LivePipeline: @unchecked Sendable {
         }
         isBusy = true
         let mode = overlayMode
+        let kind = faceKind
         lock.unlock()
 
         DispatchQueue.global(qos: .userInitiated).async {
-            let output = self.detectAndRender(image: image, mode: mode)
+            let output = self.detectAndRender(image: image, mode: mode, faceKind: kind)
             self.lock.lock()
             self.isBusy = false
             self.lock.unlock()
@@ -58,10 +64,14 @@ final class LivePipeline: @unchecked Sendable {
         return true
     }
 
-    private func detectAndRender(image: CGImage, mode: OverlayMode) -> Output {
+    private func detectAndRender(image: CGImage, mode: OverlayMode, faceKind: FaceKind) -> Output {
         let pairs: [EyePair]
         do {
-            pairs = try detector.detect(in: image)
+            if faceKind.usesAnimeDetector {
+                pairs = try animeDetector.detect(in: image)
+            } else {
+                pairs = try detector.detect(in: image)
+            }
         } catch {
             pairs = []
         }
@@ -72,7 +82,7 @@ final class LivePipeline: @unchecked Sendable {
         if let raw = pairs.first {
             let stabilized: EyePair
             if mode == .clownNose {
-                stabilized = smooth(NoseRefiner.refine(raw, in: image))
+                stabilized = smooth(noseDetector.refine(raw, in: image))
             } else {
                 stabilized = smooth(raw)
             }

@@ -12,6 +12,7 @@ enum PreviewTab { source, result }
 class AppSession extends ChangeNotifier {
   AppSession() {
     selectedFeature = FeatureCatalog.live.first;
+    stickerMode = selectedFeature.defaultSticker ?? OverlayMode.ahAhAh;
     _initPipeline();
   }
 
@@ -19,6 +20,7 @@ class AppSession extends ChangeNotifier {
   EyePipeline? _pipeline;
 
   AppFeature selectedFeature = FeatureCatalog.live.first;
+  OverlayMode stickerMode = OverlayMode.ahAhAh;
   PreviewTab previewTab = PreviewTab.source;
   Uint8List? sourceBytes;
   Uint8List? resultBytes;
@@ -26,15 +28,14 @@ class AppSession extends ChangeNotifier {
   bool busy = false;
   bool ready = false;
 
-  OverlayMode get overlayMode =>
-      selectedFeature.overlayMode ?? OverlayMode.ahAhAh;
+  FaceKind get faceKind => selectedFeature.faceKind;
 
   Future<void> _initPipeline() async {
     try {
       final pipeline = await EyePipeline.create();
       _pipeline = pipeline;
       ready = true;
-      status = '选一张猫/狗正脸照，本地贴眼不上传';
+      status = '选一张正脸照，本地贴眼不上传';
     } catch (e) {
       ready = false;
       status = '模型加载失败：$e';
@@ -49,9 +50,22 @@ class AppSession extends ChangeNotifier {
       return;
     }
     selectedFeature = feature;
+    if (feature.defaultSticker != null) {
+      stickerMode = feature.defaultSticker!;
+    }
     resultBytes = null;
     previewTab = PreviewTab.source;
     status = '已选择「${feature.title}」，去首页开始创作';
+    notifyListeners();
+  }
+
+  void setStickerMode(OverlayMode mode) {
+    if (!selectedFeature.stickerModes.contains(mode)) return;
+    if (stickerMode == mode) return;
+    stickerMode = mode;
+    resultBytes = null;
+    previewTab = PreviewTab.source;
+    status = '贴图样式 · ${mode.label}';
     notifyListeners();
   }
 
@@ -75,7 +89,7 @@ class AppSession extends ChangeNotifier {
     final pipeline = _pipeline;
     final source = sourceBytes;
     if (pipeline == null || source == null || busy) return;
-    if (!selectedFeature.isAvailable || selectedFeature.overlayMode == null) {
+    if (!selectedFeature.isAvailable || !selectedFeature.canProcess) {
       status = '当前玩法暂不可用';
       notifyListeners();
       return;
@@ -87,10 +101,17 @@ class AppSession extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await pipeline.processBytes(source, overlayMode);
+      final result = await pipeline.processBytes(
+        source,
+        stickerMode,
+        faceKind: faceKind,
+      );
       resultBytes = result;
       previewTab = PreviewTab.result;
-      status = '贴眼完成 · ${selectedFeature.title}';
+      final tag = faceKind == FaceKind.anime
+          ? '动漫·${stickerMode.label}'
+          : selectedFeature.title;
+      status = '贴眼完成 · $tag';
     } catch (e) {
       status = e is PipelineException ? e.message : '处理失败：$e';
     } finally {

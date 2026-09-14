@@ -34,11 +34,17 @@ final class LiveSessionController: ObservableObject {
     private let overlay = FloatingOverlayController()
     private var currentRegion: ScreenRegion?
     private var overlayMode: OverlayMode = .ahAhAh
+    private var faceKind: FaceKind = .pet
     private var escMonitor: Any?
 
     func setOverlayMode(_ mode: OverlayMode) {
         overlayMode = mode
         pipeline?.overlayMode = mode
+    }
+
+    func setFaceKind(_ kind: FaceKind) {
+        faceKind = kind
+        pipeline?.faceKind = kind
     }
 
     func startRegionEyeOverlay() {
@@ -116,6 +122,7 @@ final class LiveSessionController: ObservableObject {
                 pipeline = try LivePipeline()
             }
             pipeline?.overlayMode = overlayMode
+            pipeline?.faceKind = faceKind
             pipeline?.reset()
 
             let session = RegionCaptureSession(region: region, fps: fpsPreset.rawValue)

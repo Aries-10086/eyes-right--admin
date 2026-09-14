@@ -38,6 +38,10 @@ class HomeTab extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
                   children: [
                     _Stage(session: session),
+                    if (session.selectedFeature.hasStickerPicker) ...[
+                      const SizedBox(height: 12),
+                      _StickerPicker(session: session),
+                    ],
                     const SizedBox(height: 12),
                     _PreviewTabs(session: session),
                     const SizedBox(height: 14),
@@ -140,6 +144,58 @@ class _Stage extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _StickerPicker extends StatelessWidget {
+  const _StickerPicker({required this.session});
+  final AppSession session;
+
+  @override
+  Widget build(BuildContext context) {
+    final modes = session.selectedFeature.stickerModes;
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Row(
+        children: [
+          for (final mode in modes)
+            Expanded(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(9),
+                onTap: session.busy ? null : () => session.setStickerMode(mode),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  margin: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: session.stickerMode == mode
+                        ? AppTheme.pinkSoft
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    mode.label,
+                    style: GoogleFonts.notoSansSc(
+                      fontSize: 14,
+                      fontWeight: session.stickerMode == mode
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                      color: session.stickerMode == mode
+                          ? AppTheme.pink
+                          : AppTheme.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

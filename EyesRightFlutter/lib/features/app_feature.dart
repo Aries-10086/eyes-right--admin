@@ -13,7 +13,8 @@ class AppFeature {
     required this.icon,
     required this.status,
     this.badge,
-    this.overlayMode,
+    this.faceKind = FaceKind.pet,
+    this.stickerModes = const [],
   });
 
   final String id;
@@ -22,9 +23,14 @@ class AppFeature {
   final IconData icon;
   final FeatureStatus status;
   final String? badge;
-  final OverlayMode? overlayMode;
+  final FaceKind faceKind;
+  final List<OverlayMode> stickerModes;
 
   bool get isAvailable => status != FeatureStatus.comingSoon;
+  OverlayMode? get defaultSticker =>
+      stickerModes.isEmpty ? null : stickerModes.first;
+  bool get hasStickerPicker => stickerModes.length >= 2;
+  bool get canProcess => defaultSticker != null;
 }
 
 /// 新功能只在这里登记即可出现在「玩法」页
@@ -33,20 +39,22 @@ class FeatureCatalog {
     AppFeature(
       id: 'ah_ah_ah',
       title: '啊啊啊',
-      subtitle: '双眼一体眼罩贴图',
+      subtitle: '宠物双眼一体眼罩贴图',
       icon: Icons.visibility_rounded,
       status: FeatureStatus.live,
       badge: '热门',
-      overlayMode: OverlayMode.ahAhAh,
+      faceKind: FaceKind.pet,
+      stickerModes: [OverlayMode.ahAhAh],
     ),
     AppFeature(
       id: 'add_light',
       title: '加一道光',
-      subtitle: '左右眼各贴同一张图',
+      subtitle: '宠物左右眼各贴同一张图',
       icon: Icons.auto_awesome_rounded,
       status: FeatureStatus.live,
       badge: '推荐',
-      overlayMode: OverlayMode.addLight,
+      faceKind: FaceKind.pet,
+      stickerModes: [OverlayMode.addLight],
     ),
     AppFeature(
       id: 'clown_nose',
@@ -55,7 +63,18 @@ class FeatureCatalog {
       icon: Icons.sentiment_very_satisfied_rounded,
       status: FeatureStatus.live,
       badge: '新品',
-      overlayMode: OverlayMode.clownNose,
+      faceKind: FaceKind.pet,
+      stickerModes: [OverlayMode.clownNose],
+    ),
+    AppFeature(
+      id: 'anime_eyes',
+      title: '动漫贴眼',
+      subtitle: '二次元脸检测，可选啊啊啊 / 加一道光',
+      icon: Icons.face_retouching_natural_rounded,
+      status: FeatureStatus.live,
+      badge: '新品',
+      faceKind: FaceKind.anime,
+      stickerModes: [OverlayMode.ahAhAh, OverlayMode.addLight],
     ),
     AppFeature(
       id: 'region_live',

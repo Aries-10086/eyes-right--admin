@@ -29,9 +29,19 @@ __pycache__/
 weights/
 *.onnx
 !EyesRightMac/Sources/EyesRightMac/Resources/pet_eye_best.onnx
+!EyesRightMac/Sources/EyesRightMac/Resources/pet_nose_rtmpose.onnx
+!EyesRightMac/Sources/EyesRightMac/Resources/cat_landmark_model.onnx
+!EyesRightMac/Sources/EyesRightMac/Resources/anime_face_yolov8n.onnx
 !EyesRightWin/resources/pet_eye_best.onnx
 !EyesRightFlutter/assets/models/pet_eye_best.onnx
+!EyesRightFlutter/assets/models/pet_nose_rtmpose.onnx
+!EyesRightFlutter/assets/models/cat_landmark_model.onnx
+!EyesRightFlutter/assets/models/anime_face_yolov8n.onnx
 
+# Local eval / scratch (not shipping)
+/models/
+EyesRightMac/test_*.png
+EyesRightFlutter/android/build/
 # Mac app build
 EyesRightMac/.build/
 EyesRightMac/.swiftpm/

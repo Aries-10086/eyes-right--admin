@@ -19,6 +19,9 @@ let package = Package(
             path: "Sources/EyesRightMac",
             resources: [
                 .copy("Resources/pet_eye_best.onnx"),
+                .copy("Resources/pet_nose_rtmpose.onnx"),
+                .copy("Resources/cat_landmark_model.onnx"),
+                .copy("Resources/anime_face_yolov8n.onnx"),
                 .copy("Resources/IMG_20260819_142559_cutout.png"),
                 .copy("Resources/guang_overlay.jpg"),
                 .copy("Resources/clown_nose.png"),

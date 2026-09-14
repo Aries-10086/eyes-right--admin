@@ -2,10 +2,15 @@ import AppKit
 import SwiftUI
 
 enum EyesRightMain {
-    static func runCLI(input: URL, output: URL, mode: OverlayMode = .ahAhAh) -> Int32 {
+    static func runCLI(
+        input: URL,
+        output: URL,
+        mode: OverlayMode = .ahAhAh,
+        faceKind: FaceKind = .pet
+    ) -> Int32 {
         do {
             let pipeline = try EyePipeline()
-            let result = try pipeline.processImage(at: input, mode: mode)
+            let result = try pipeline.processImage(at: input, mode: mode, faceKind: faceKind)
             let image = ImageProcessor.nsImage(from: result)
             guard let tiff = image.tiffRepresentation,
                   let bitmap = NSBitmapImageRep(data: tiff),
@@ -15,7 +20,8 @@ enum EyesRightMain {
                 return 1
             }
             try data.write(to: output)
-            print("Saved: \(output.path) [\(mode.rawValue)]")
+            let tag = faceKind == .anime ? "动漫·\(mode.rawValue)" : mode.rawValue
+            print("Saved: \(output.path) [\(tag)]")
             return 0
         } catch {
             fputs("\(error.localizedDescription)\n", stderr)

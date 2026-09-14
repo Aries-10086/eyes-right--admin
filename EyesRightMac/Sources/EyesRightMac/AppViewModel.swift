@@ -8,9 +8,11 @@ final class AppViewModel: ObservableObject {
     @Published var isProcessing = false
     @Published var isDropTargeted = false
     @Published var statusMessage = ""
+    @Published var faceKind: FaceKind = .pet
     @Published var overlayMode: OverlayMode = .ahAhAh {
         didSet {
             liveSession.setOverlayMode(overlayMode)
+            liveSession.setFaceKind(faceKind)
             guard oldValue != overlayMode, sourceURL != nil, !liveSession.isRunning else { return }
             reprocessCurrent()
         }
@@ -36,6 +38,26 @@ final class AppViewModel: ObservableObject {
         }
     }
 
+    func applyFeature(_ module: FeatureModule) {
+        faceKind = module.faceKind
+        if let sticker = module.defaultSticker {
+            if overlayMode != sticker {
+                overlayMode = sticker
+            } else {
+                liveSession.setFaceKind(faceKind)
+                liveSession.setOverlayMode(overlayMode)
+                reprocessIfNeeded()
+            }
+        } else {
+            liveSession.setFaceKind(faceKind)
+        }
+    }
+
+    func setStickerMode(_ mode: OverlayMode) {
+        guard overlayMode != mode else { return }
+        overlayMode = mode
+    }
+
     func openImage() {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.image]
@@ -50,6 +72,7 @@ final class AppViewModel: ObservableObject {
     }
 
     func startRegionOverlay() {
+        liveSession.setFaceKind(faceKind)
         liveSession.setOverlayMode(overlayMode)
         liveSession.startRegionEyeOverlay()
     }
@@ -86,6 +109,11 @@ final class AppViewModel: ObservableObject {
         }
     }
 
+    private func reprocessIfNeeded() {
+        guard sourceURL != nil, !liveSession.isRunning else { return }
+        reprocessCurrent()
+    }
+
     private func reprocessCurrent() {
         guard let sourceURL else { return }
         process(url: sourceURL)
@@ -102,17 +130,19 @@ final class AppViewModel: ObservableObject {
         isDropTargeted = false
         statusMessage = "处理中…"
         let mode = overlayMode
+        let kind = faceKind
 
         Task.detached(priority: .userInitiated) { [pipeline] in
             do {
-                let result = try pipeline.processImage(at: url, mode: mode)
+                let result = try pipeline.processImage(at: url, mode: mode, faceKind: kind)
                 let source = try ImageProcessor.loadCGImage(from: url)
 
                 await MainActor.run {
                     self.sourceImage = ImageProcessor.nsImage(from: source)
                     self.resultImage = ImageProcessor.nsImage(from: result)
                     self.isProcessing = false
-                    self.statusMessage = "完成：\(url.lastPathComponent) · \(mode.rawValue)"
+                    let tag = kind == .anime ? "动漫·\(mode.rawValue)" : mode.rawValue
+                    self.statusMessage = "完成：\(url.lastPathComponent) · \(tag)"
                 }
             } catch {
                 await MainActor.run {

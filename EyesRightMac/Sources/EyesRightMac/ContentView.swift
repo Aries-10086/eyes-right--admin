@@ -63,9 +63,7 @@ struct ContentView: View {
 
     private func applyFeature(_ module: FeatureModule) {
         selectedFeatureID = module.id
-        if let mode = module.overlayMode {
-            viewModel.overlayMode = mode
-        }
+        viewModel.applyFeature(module)
         if module.id == "region_live" {
             viewModel.startRegionOverlay()
         }
@@ -134,20 +132,36 @@ struct ContentView: View {
 
                 Spacer()
 
-                if selectedFeature.overlayMode != nil {
-                    Picker("贴图模式", selection: $viewModel.overlayMode) {
-                        ForEach(OverlayMode.allCases) { mode in
+                if selectedFeature.hasStickerPicker {
+                    Picker("贴图样式", selection: Binding(
+                        get: { viewModel.overlayMode },
+                        set: { viewModel.setStickerMode($0) }
+                    )) {
+                        ForEach(selectedFeature.stickerModes) { mode in
+                            Text(mode.rawValue).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(maxWidth: 260)
+                    .disabled(viewModel.isProcessing)
+                } else if !selectedFeature.stickerModes.isEmpty {
+                    // 宠物单样式玩法：分段切换其它宠物贴图
+                    Picker("贴图模式", selection: Binding(
+                        get: { viewModel.overlayMode },
+                        set: { mode in
+                            if let match = FeatureCatalog.petModule(for: mode) {
+                                selectedFeatureID = match.id
+                                viewModel.applyFeature(match)
+                            }
+                        }
+                    )) {
+                        ForEach([OverlayMode.ahAhAh, .addLight, .clownNose]) { mode in
                             Text(mode.rawValue).tag(mode)
                         }
                     }
                     .pickerStyle(.segmented)
                     .frame(maxWidth: 300)
                     .disabled(viewModel.isProcessing)
-                    .onChange(of: viewModel.overlayMode) { mode in
-                        if let match = FeatureCatalog.live.first(where: { $0.overlayMode == mode }) {
-                            selectedFeatureID = match.id
-                        }
-                    }
                 }
 
                 HStack(spacing: 8) {

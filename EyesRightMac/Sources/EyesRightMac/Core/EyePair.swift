@@ -9,6 +9,17 @@ struct EyePair: Sendable {
     let boxWidth: CGFloat
 }
 
+/// 检测域：宠物 pose vs 二次元脸
+enum FaceKind: String, CaseIterable, Identifiable, Sendable {
+    case pet = "宠物"
+    case anime = "动漫"
+
+    var id: String { rawValue }
+
+    var usesAnimeDetector: Bool { self == .anime }
+}
+
+/// 贴图样式（与检测域正交：动漫模块里也可选啊啊啊 / 加一道光）
 enum OverlayMode: String, CaseIterable, Identifiable, Sendable {
     /// Original dual-eye cutout sticker
     case ahAhAh = "啊啊啊"
@@ -37,7 +48,7 @@ enum OverlayConstants {
     static let perEyeMaxWidthByHalfSpan: CGFloat = 1.35
 
     /// 「小丑鼻子」：贴纸宽度相对两眼距（比脸宽更稳）
-    static let clownNoseWidthFromInterEye: CGFloat = 0.55
+    static let clownNoseWidthFromInterEye: CGFloat = 0.42
     /// 鼻子关键点置信度下限；过低则回退到两眼中点下方
     static let noseConfThreshold: Float = 0.12
 }

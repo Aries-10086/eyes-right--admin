@@ -5,11 +5,13 @@ import 'package:image/image.dart' as img;
 
 import '../models/eye_models.dart';
 
-/// 模型 kpt2 常落在额头/鼻梁，贴小丑鼻前用两眼几何 + 鼻头颜色搜索校正。
+/// 校正鼻尖：强制两眼中线，颜色搜索只调深度，避免橘色皮毛拽到脸颊。
 class NoseRefiner {
-  static const _geometricDepth = 0.58;
-  static const _pinkPeakMin = 10.0;
-  static const _eyesOnNoseDistRatio = 0.42;
+  static const _geometricDepth = 0.62;
+  static const _maxAcrossRatio = 0.12;
+  static const _pinkPeakMin = 14.0;
+  static const _depthMinRatio = 0.28;
+  static const _depthMaxRatio = 0.95;
 
   static EyePair refine(EyePair pair, img.Image image) {
     final tip = _resolveTip(pair, image);
@@ -56,11 +58,11 @@ class NoseRefiner {
     }
 
     final geom = ui.Offset(
-      mid.dx + downX * _geometricDepth * inter + eyeDirX * lat * 0.1,
-      mid.dy + downY * _geometricDepth * inter + eyeDirY * lat * 0.1,
+      mid.dx + downX * _geometricDepth * inter,
+      mid.dy + downY * _geometricDepth * inter,
     );
 
-    final pink = _findNoseLeatherCentroid(
+    final depth = _findBestDepthAlongMidline(
       image: image,
       mid: mid,
       downX: downX,
@@ -69,16 +71,11 @@ class NoseRefiner {
       eyeDirY: eyeDirY,
       inter: inter,
     );
-    if (pink == null) return geom;
-
-    final distMid = hypot(pink.dx - mid.dx, pink.dy - mid.dy);
-    if (distMid < _eyesOnNoseDistRatio * inter) {
-      return ui.Offset(pink.dx * 0.85 + mid.dx * 0.15, pink.dy * 0.85 + mid.dy * 0.15);
-    }
-    return ui.Offset(pink.dx * 0.72 + geom.dx * 0.28, pink.dy * 0.72 + geom.dy * 0.28);
+    if (depth == null) return geom;
+    return ui.Offset(mid.dx + downX * depth, mid.dy + downY * depth);
   }
 
-  static ui.Offset? _findNoseLeatherCentroid({
+  static double? _findBestDepthAlongMidline({
     required img.Image image,
     required ui.Offset mid,
     required double downX,
@@ -89,12 +86,16 @@ class NoseRefiner {
   }) {
     final w = image.width;
     final h = image.height;
+    final depthMin = _depthMinRatio * inter;
+    final depthMax = _depthMaxRatio * inter;
+    final maxAcross = _maxAcrossRatio * inter;
+
     var minX = w.toDouble();
     var maxX = 0.0;
     var minY = h.toDouble();
     var maxY = 0.0;
-    for (var t = -0.1; t <= 1.0; t += 0.14) {
-      for (final o in [-0.5, 0.0, 0.5]) {
+    for (var t = _depthMinRatio; t <= _depthMaxRatio; t += 0.08) {
+      for (final o in [-_maxAcrossRatio, 0.0, _maxAcrossRatio]) {
         final px = mid.dx + downX * inter * t + eyeDirX * inter * o;
         final py = mid.dy + downY * inter * t + eyeDirY * inter * o;
         minX = math.min(minX, px);
@@ -110,68 +111,50 @@ class NoseRefiner {
     final y1 = maxY.ceil().clamp(0, h - 1);
     if (x1 <= x0 || y1 <= y0) return null;
 
-    final rw = x1 - x0 + 1;
-    final rh = y1 - y0 + 1;
-    final score = List<double>.filled(rw * rh, 0);
+    const bins = 24;
+    final binScore = List<double>.filled(bins, 0);
+    final binWeight = List<double>.filled(bins, 0);
     var peak = 0.0;
 
     for (var y = y0; y <= y1; y++) {
       for (var x = x0; x <= x1; x++) {
-        final along = (x - mid.dx) * downX + (y - mid.dy) * downY;
-        final across = (x - mid.dx) * eyeDirX + (y - mid.dy) * eyeDirY;
-        if (along <= -0.1 * inter || along >= 0.95 * inter || across.abs() >= 0.4 * inter) {
+        final vx = x - mid.dx;
+        final vy = y - mid.dy;
+        final along = vx * downX + vy * downY;
+        final across = vx * eyeDirX + vy * eyeDirY;
+        if (along < depthMin || along > depthMax || across.abs() > maxAcross) {
           continue;
         }
         final p = image.getPixel(x, y);
         final s = _leatherScore(p.r.toDouble(), p.g.toDouble(), p.b.toDouble());
-        score[(y - y0) * rw + (x - x0)] = s;
+        if (s <= 0) continue;
         if (s > peak) peak = s;
+        final centerW = 1.0 - across.abs() / maxAcross;
+        final idx = (((along - depthMin) / (depthMax - depthMin)) * bins)
+            .floor()
+            .clamp(0, bins - 1);
+        binScore[idx] += s * centerW;
+        binWeight[idx] += centerW;
       }
     }
+
     if (peak < _pinkPeakMin) return null;
 
-    final smooth = List<double>.from(score);
-    for (var y = 0; y < rh; y++) {
-      for (var x = 0; x < rw; x++) {
-        var sum = 0.0;
-        var n = 0;
-        for (var dy = -1; dy <= 1; dy++) {
-          for (var dx = -1; dx <= 1; dx++) {
-            final xx = x + dx;
-            final yy = y + dy;
-            if (xx < 0 || yy < 0 || xx >= rw || yy >= rh) continue;
-            sum += score[yy * rw + xx];
-            n++;
-          }
-        }
-        smooth[y * rw + x] = sum / math.max(n, 1);
+    var bestIdx = -1;
+    var bestAvg = 0.0;
+    for (var i = 0; i < bins; i++) {
+      if (binWeight[i] < 4) continue;
+      final avg = binScore[i] / binWeight[i];
+      if (avg > bestAvg) {
+        bestAvg = avg;
+        bestIdx = i;
       }
     }
+    if (bestIdx < 0 || bestAvg < _pinkPeakMin * 0.85) return null;
 
-    final thr = math.max(_pinkPeakMin, peak * 0.72);
-    var wsum = 0.0;
-    var sx = 0.0;
-    var sy = 0.0;
-    var smoothPeak = 0.0;
-    for (var y = 0; y < rh; y++) {
-      for (var x = 0; x < rw; x++) {
-        final s = smooth[y * rw + x];
-        if (s > smoothPeak) smoothPeak = s;
-        if (s < thr) continue;
-        final px = x0 + x;
-        final py = y0 + y;
-        final along = (px - mid.dx) * downX + (py - mid.dy) * downY;
-        final across = (px - mid.dx) * eyeDirX + (py - mid.dy) * eyeDirY;
-        if (along <= -0.1 * inter || along >= 0.95 * inter || across.abs() >= 0.4 * inter) {
-          continue;
-        }
-        wsum += s;
-        sx += s * px;
-        sy += s * py;
-      }
-    }
-    if (wsum <= 0 || smoothPeak < _pinkPeakMin) return null;
-    return ui.Offset(sx / wsum, sy / wsum);
+    final t0 = depthMin + (depthMax - depthMin) * (bestIdx + 0.5) / bins;
+    final geomDepth = _geometricDepth * inter;
+    return t0 * 0.65 + geomDepth * 0.35;
   }
 
   static double _leatherScore(double r, double g, double b) {
@@ -189,15 +172,19 @@ class NoseRefiner {
     }
     if (hue < 0) hue += 360;
 
-    final orange = hue > 18 && hue < 55;
-    final pink = hue >= 330 || hue <= 22;
+    if (hue > 15 && hue < 60) return 0;
+    if (mx > 220 && sat < 0.18) return 0;
+
     var score = 0.0;
-    if (pink && sat > 0.16 && mx > 65) {
-      score = sat * (mx / 255) * 110 + (r - g) * 0.25;
+    final pink = hue >= 330 || hue <= 18;
+    if (pink && sat > 0.20 && mx > 70 && mx < 230) {
+      score = sat * (mx / 255) * 120 + math.max(0, r - g) * 0.35;
     }
-    if (orange) score *= 0.05;
-    final brown = r > g + 10 && r > b + 10 && mx < 130 && mx > 30 && sat > 0.12;
-    if (brown) score = math.max(score, sat * 45 + (r - g) * 0.4);
+    final brown = r > g + 8 && r > b + 8 && mx < 140 && mx > 25 && sat > 0.14;
+    if (brown) {
+      score = math.max(score, sat * 55 + (r - g) * 0.5);
+    }
+    if (r < g + 6) score *= 0.15;
     return score;
   }
 }

@@ -4,7 +4,14 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 
-/// Align with Mac `OverlayConstants` / `EyePair` / `OverlayMode`.
+/// Align with Mac `OverlayConstants` / `EyePair` / `OverlayMode` / `FaceKind`.
+enum FaceKind {
+  pet,
+  anime;
+
+  bool get usesAnimeDetector => this == FaceKind.anime;
+}
+
 enum OverlayMode {
   ahAhAh('啊啊啊'),
   addLight('加一道光'),
@@ -40,7 +47,7 @@ class OverlayConstants {
   static const perEyeSpreadBoost = 1.12;
   static const perEyeCoverRatio = 1.05;
   static const perEyeMaxWidthByHalfSpan = 1.35;
-  static const clownNoseWidthFromInterEye = 0.55;
+  static const clownNoseWidthFromInterEye = 0.42;
   static const noseConfThreshold = 0.12;
   static const maxLongEdge = 2048;
   static const inputSize = 640;
