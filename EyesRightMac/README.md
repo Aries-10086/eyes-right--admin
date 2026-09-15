@@ -13,7 +13,7 @@ cd EyesRightMac
 
 1. Release 编译
 2. 生成 `Eyes Right.app`
-3. 打出 DMG：`dist/EyesRight-0.2.1-arm64.dmg`
+3. 打出 DMG：`dist/EyesRight-0.4.0-arm64.dmg`
 4. 安装到 `/Applications/Eyes Right.app`
 5. 在桌面创建「Eyes Right」替身
 
@@ -25,13 +25,20 @@ open -a "Eyes Right"
 
 ## 分发说明
 
-当前版本：**0.2.1**（build 3）
+当前版本：**0.4.0**（build 5）
 
 | 文件 | 用途 |
 |------|------|
 | `Eyes Right.app` | 可直接运行 |
-| `dist/EyesRight-0.2.1-arm64.dmg` | 发给别人：打开后拖到 Applications |
+| `dist/EyesRight-0.4.0-arm64.dmg` | 发给别人：打开后拖到 Applications |
 | 桌面替身 | 双击启动（指向 Applications 里的 App） |
+
+### 0.4.0 更新内容
+
+- 首页改为入口看板，「创作」独立为贴图工作台
+- 玩法按「创作 / 工具 / 即将上线」分区；宠物贴图合并三种样式
+- 新增「动漫贴眼」模块（二次元脸检测 + 啊啊啊 / 加一道光）
+- 小丑鼻子接入鼻尖姿态模型，提升定位稳定性
 
 ### 0.2.1 更新内容
 
@@ -61,7 +68,7 @@ swift build -c release
 ## 功能
 
 - 拖入或选择图片
-- 本地 ONNX 推理（YOLOv8n-pose）
+- 本地 ONNX 推理（YOLOv8n-pose / 动漫脸 YOLO）
 - 按脸框宽度自适应贴图（coverage=0.72）
 - 保存 PNG/JPEG
 
@@ -75,7 +82,9 @@ swift build -c release
 
 | 文件 | 说明 |
 |------|------|
-| `Resources/pet_eye_best.onnx` | 训练模型 |
+| `Resources/pet_eye_best.onnx` | 宠物眼点模型 |
+| `Resources/anime_face_yolov8n.onnx` | 动漫脸检测 |
+| `Resources/pet_nose_rtmpose.onnx` / `cat_landmark_model.onnx` | 鼻尖定位 |
 | `Resources/IMG_20260819_142559_cutout.png` | 眼睛素材 |
 
 更新模型：

@@ -599,7 +599,7 @@ struct MineView: View {
                 GroupBox("关于") {
                     VStack(alignment: .leading, spacing: 10) {
                         Label("完全本地处理，不上传云端", systemImage: "lock.fill")
-                        Label("版本 0.3.0（Mac）", systemImage: "info.circle")
+                        Label("版本 0.4.0（Mac）", systemImage: "info.circle")
                         Label(
                             "已上线：\(FeatureCatalog.live.map(\.title).joined(separator: " · "))",
                             systemImage: "sparkles"
