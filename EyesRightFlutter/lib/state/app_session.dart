@@ -45,7 +45,7 @@ class AppSession extends ChangeNotifier {
 
   void selectFeature(AppFeature feature) {
     if (!feature.isAvailable) {
-      status = '「${feature.title}」即将上线，先试试首页可用玩法';
+      status = '「${feature.title}」即将上线，先试试首页可用入口';
       notifyListeners();
       return;
     }
@@ -55,7 +55,9 @@ class AppSession extends ChangeNotifier {
     }
     resultBytes = null;
     previewTab = PreviewTab.source;
-    status = '已选择「${feature.title}」，去首页开始创作';
+    status = feature.canProcess
+        ? '已选择「${feature.title}」，去创作台开始'
+        : '已选择「${feature.title}」';
     notifyListeners();
   }
 

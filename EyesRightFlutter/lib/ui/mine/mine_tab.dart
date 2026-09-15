@@ -63,7 +63,7 @@ class MineTab extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Text(
-            '新功能会先出现在「玩法」分区，再接入首页创作流。',
+            '新功能会先出现在「玩法」分区，再从首页或创作台进入。',
             textAlign: TextAlign.center,
             style: GoogleFonts.notoSansSc(
               fontSize: 12,
@@ -112,7 +112,7 @@ class _ProfileCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '本地猫狗贴眼工具',
+                  '本地贴图工具 · 宠物 / 动漫',
                   style: GoogleFonts.notoSansSc(
                     fontSize: 13,
                     color: AppTheme.textSecondary,

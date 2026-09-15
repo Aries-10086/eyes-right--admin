@@ -7,11 +7,11 @@ import '../../state/app_session.dart';
 import '../shell/app_shell.dart';
 import '../theme.dart';
 
-/// B 站「分区」式玩法墙：点选模块 → 回首页创作
+/// 分区玩法墙：点选模块 → 进创作台
 class WorkshopTab extends StatelessWidget {
-  const WorkshopTab({super.key, required this.onOpenHome});
+  const WorkshopTab({super.key, required this.onOpenStudio});
 
-  final VoidCallback onOpenHome;
+  final VoidCallback onOpenStudio;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +30,7 @@ class WorkshopTab extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
             children: [
               Text(
-                '全部玩法',
+                '玩法',
                 style: GoogleFonts.notoSansSc(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
@@ -39,40 +39,88 @@ class WorkshopTab extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                '选择玩法后回到首页开始创作；新功能会加在这里',
+                '按主体选创作模块；贴图样式在首页切换',
                 style: GoogleFonts.notoSansSc(
                   fontSize: 12,
                   color: AppTheme.textSecondary,
                 ),
               ),
-              const SizedBox(height: 14),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: FeatureCatalog.all.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 1.15,
+              const SizedBox(height: 16),
+              for (final category in FeatureCategory.values) ...[
+                _CategoryBlock(
+                  category: category,
+                  selectedId: session.selectedFeature.id,
+                  onSelect: (feature) {
+                    session.selectFeature(feature);
+                    if (feature.isAvailable) onOpenStudio();
+                  },
                 ),
-                itemBuilder: (context, index) {
-                  final feature = FeatureCatalog.all[index];
-                  final selected = session.selectedFeature.id == feature.id;
-                  return _FeatureCard(
-                    feature: feature,
-                    selected: selected,
-                    onTap: () {
-                      session.selectFeature(feature);
-                      if (feature.isAvailable) onOpenHome();
-                    },
-                  );
-                },
-              ),
+                const SizedBox(height: 8),
+              ],
             ],
           );
         },
       ),
+    );
+  }
+}
+
+class _CategoryBlock extends StatelessWidget {
+  const _CategoryBlock({
+    required this.category,
+    required this.selectedId,
+    required this.onSelect,
+  });
+
+  final FeatureCategory category;
+  final String selectedId;
+  final ValueChanged<AppFeature> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final modules = FeatureCatalog.modulesIn(category);
+    if (modules.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          category.label,
+          style: GoogleFonts.notoSansSc(
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+            color: AppTheme.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          category.hint,
+          style: GoogleFonts.notoSansSc(
+            fontSize: 11,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 10),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: modules.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: 1.12,
+          ),
+          itemBuilder: (context, index) {
+            final feature = modules[index];
+            return _FeatureCard(
+              feature: feature,
+              selected: selectedId == feature.id,
+              onTap: () => onSelect(feature),
+            );
+          },
+        ),
+      ],
     );
   }
 }

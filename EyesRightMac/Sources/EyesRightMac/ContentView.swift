@@ -3,7 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject private var viewModel: AppViewModel
     @State private var section: AppSection = .home
-    @State private var selectedFeatureID: String = "ah_ah_ah"
+    @State private var selectedFeatureID: String = "pet_stickers"
 
     private var selectedFeature: FeatureModule {
         FeatureCatalog.all.first(where: { $0.id == selectedFeatureID }) ?? FeatureCatalog.all[0]
@@ -22,7 +22,7 @@ struct ContentView: View {
             }
             .background {
                 PhotoDropTarget(
-                    isEnabled: section == .home && !viewModel.isProcessing && !viewModel.liveSession.isRunning
+                    isEnabled: section == .studio && !viewModel.isProcessing && !viewModel.liveSession.isRunning
                 ) { url in
                     viewModel.handleDrop(url: url)
                 } onTargeted: { targeted in
@@ -50,11 +50,18 @@ struct ContentView: View {
     private var detailBody: some View {
         switch section {
         case .home:
-            homeDetail
+            HomeDashboardView(
+                selectedFeatureID: selectedFeatureID
+            ) { module in
+                openStudio(with: module)
+            } onBrowseWorkshop: {
+                section = .workshop
+            }
+        case .studio:
+            studioDetail
         case .workshop:
             WorkshopView(selectedFeatureID: $selectedFeatureID) { module in
-                applyFeature(module)
-                section = .home
+                openStudio(with: module)
             }
         case .mine:
             MineView()
@@ -67,6 +74,11 @@ struct ContentView: View {
         if module.id == "region_live" {
             viewModel.startRegionOverlay()
         }
+    }
+
+    private func openStudio(with module: FeatureModule) {
+        applyFeature(module)
+        section = .studio
     }
 
     private var background: some View {
@@ -91,12 +103,20 @@ struct ContentView: View {
         .ignoresSafeArea()
     }
 
-    private var homeDetail: some View {
+    private var studioDetail: some View {
         VStack(spacing: 0) {
             header
             Divider().overlay(AppTheme.panelStroke)
             workspace
                 .padding(20)
+            if !viewModel.statusMessage.isEmpty {
+                Text(viewModel.statusMessage)
+                    .font(.system(size: 12))
+                    .foregroundStyle(AppTheme.muted)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 22)
+                    .padding(.bottom, 14)
+            }
         }
     }
 
@@ -124,7 +144,7 @@ struct ContentView: View {
                         Text("Eyes Right")
                             .font(.system(size: 20, weight: .bold, design: .rounded))
                             .foregroundStyle(AppTheme.textPrimary)
-                        Text("当前玩法 · \(selectedFeature.title)")
+                        Text("创作台 · \(selectedFeature.title)")
                             .font(.system(size: 11, weight: .medium))
                             .foregroundStyle(AppTheme.muted)
                     }
@@ -142,25 +162,7 @@ struct ContentView: View {
                         }
                     }
                     .pickerStyle(.segmented)
-                    .frame(maxWidth: 260)
-                    .disabled(viewModel.isProcessing)
-                } else if !selectedFeature.stickerModes.isEmpty {
-                    // 宠物单样式玩法：分段切换其它宠物贴图
-                    Picker("贴图模式", selection: Binding(
-                        get: { viewModel.overlayMode },
-                        set: { mode in
-                            if let match = FeatureCatalog.petModule(for: mode) {
-                                selectedFeatureID = match.id
-                                viewModel.applyFeature(match)
-                            }
-                        }
-                    )) {
-                        ForEach([OverlayMode.ahAhAh, .addLight, .clownNose]) { mode in
-                            Text(mode.rawValue).tag(mode)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(maxWidth: 300)
+                    .frame(maxWidth: selectedFeature.stickerModes.count >= 3 ? 340 : 260)
                     .disabled(viewModel.isProcessing)
                 }
 
@@ -343,6 +345,128 @@ struct ContentView: View {
     }
 }
 
+struct HomeDashboardView: View {
+    let selectedFeatureID: String
+    var onStart: (FeatureModule) -> Void
+    var onBrowseWorkshop: () -> Void
+
+    private let columns = [
+        GridItem(.adaptive(minimum: 220), spacing: 14),
+    ]
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 22) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Eyes Right")
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .foregroundStyle(AppTheme.textPrimary)
+                    Text("本地贴图工具。选一个主体开始，或去玩法看全部模块。")
+                        .font(.system(size: 14))
+                        .foregroundStyle(AppTheme.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.top, 4)
+
+                dashboardSection(
+                    title: "开始创作",
+                    hint: "进入创作台选图贴图",
+                    modules: FeatureCatalog.modules(in: .create).filter(\.isAvailable)
+                )
+
+                let tools = FeatureCatalog.modules(in: .tools).filter(\.isAvailable)
+                if !tools.isEmpty {
+                    dashboardSection(
+                        title: "工具",
+                        hint: "配合创作使用",
+                        modules: tools
+                    )
+                }
+
+                Button(action: onBrowseWorkshop) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "square.grid.2x2.fill")
+                            .foregroundStyle(AppTheme.pink)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("浏览全部玩法")
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundStyle(AppTheme.textPrimary)
+                            Text("即将上线与素材规划也在这里")
+                                .font(.system(size: 12))
+                                .foregroundStyle(AppTheme.muted)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(AppTheme.muted)
+                    }
+                    .padding(16)
+                    .background(Color.white, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(AppTheme.panelStroke, lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(24)
+        }
+    }
+
+    private func dashboardSection(title: String, hint: String, modules: [FeatureModule]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(title)
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppTheme.textPrimary)
+                Text(hint)
+                    .font(.system(size: 12))
+                    .foregroundStyle(AppTheme.muted)
+            }
+            LazyVGrid(columns: columns, spacing: 14) {
+                ForEach(modules) { module in
+                    Button {
+                        onStart(module)
+                    } label: {
+                        HStack(spacing: 14) {
+                            Image(systemName: module.systemImage)
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(AppTheme.pink)
+                                .frame(width: 44, height: 44)
+                                .background(AppTheme.pinkSoft, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(module.title)
+                                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                                    .foregroundStyle(AppTheme.textPrimary)
+                                Text(module.subtitle)
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(AppTheme.muted)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                            }
+                            Spacer(minLength: 0)
+                            Image(systemName: "arrow.right.circle.fill")
+                                .font(.system(size: 20))
+                                .foregroundStyle(AppTheme.pink.opacity(0.85))
+                        }
+                        .padding(16)
+                        .frame(maxWidth: .infinity, minHeight: 96, alignment: .leading)
+                        .background(Color.white, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .strokeBorder(
+                                    selectedFeatureID == module.id ? AppTheme.pink : AppTheme.panelStroke,
+                                    lineWidth: selectedFeatureID == module.id ? 1.6 : 1
+                                )
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+}
+
 struct WorkshopView: View {
     @Binding var selectedFeatureID: String
     var onSelect: (FeatureModule) -> Void
@@ -353,22 +477,39 @@ struct WorkshopView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("全部玩法")
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppTheme.textPrimary)
-                Text("选择玩法后回到首页创作；新功能会加在这里")
-                    .font(.system(size: 13))
-                    .foregroundStyle(AppTheme.muted)
+            VStack(alignment: .leading, spacing: 22) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("玩法")
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .foregroundStyle(AppTheme.textPrimary)
+                    Text("按主体选创作模块；贴图样式在首页切换")
+                        .font(.system(size: 13))
+                        .foregroundStyle(AppTheme.muted)
+                }
 
-                LazyVGrid(columns: columns, spacing: 14) {
-                    ForEach(FeatureCatalog.all) { module in
-                        FeatureCard(
-                            module: module,
-                            selected: selectedFeatureID == module.id
-                        ) {
-                            if module.isAvailable {
-                                onSelect(module)
+                ForEach(FeatureCategory.allCases) { category in
+                    let modules = FeatureCatalog.modules(in: category)
+                    if !modules.isEmpty {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                Text(category.rawValue)
+                                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                                    .foregroundStyle(AppTheme.textPrimary)
+                                Text(category.hint)
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(AppTheme.muted)
+                            }
+                            LazyVGrid(columns: columns, spacing: 14) {
+                                ForEach(modules) { module in
+                                    FeatureCard(
+                                        module: module,
+                                        selected: selectedFeatureID == module.id
+                                    ) {
+                                        if module.isAvailable {
+                                            onSelect(module)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -446,7 +587,7 @@ struct MineView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Eyes Right")
                             .font(.system(size: 20, weight: .bold, design: .rounded))
-                        Text("本地猫狗贴眼工具")
+                        Text("本地贴图工具 · 宠物 / 动漫")
                             .font(.system(size: 13))
                             .foregroundStyle(AppTheme.muted)
                     }
@@ -470,7 +611,7 @@ struct MineView: View {
                     .padding(.vertical, 6)
                 }
 
-                Text("新功能会先出现在「玩法」分区，再接入首页创作流。")
+                Text("新功能会先出现在「玩法」分区，再从首页或创作台进入。")
                     .font(.system(size: 12))
                     .foregroundStyle(AppTheme.muted)
             }

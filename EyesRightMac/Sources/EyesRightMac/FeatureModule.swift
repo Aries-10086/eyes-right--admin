@@ -2,6 +2,7 @@ import SwiftUI
 
 enum AppSection: String, CaseIterable, Identifiable, Hashable {
     case home = "首页"
+    case studio = "创作"
     case workshop = "玩法"
     case mine = "我的"
 
@@ -10,6 +11,7 @@ enum AppSection: String, CaseIterable, Identifiable, Hashable {
     var systemImage: String {
         switch self {
         case .home: return "house.fill"
+        case .studio: return "wand.and.stars"
         case .workshop: return "square.grid.2x2.fill"
         case .mine: return "person.fill"
         }
@@ -21,16 +23,34 @@ enum FeatureStatus {
     case comingSoon
 }
 
+/// 玩法墙分区：创作（按主体）/ 工具 / 规划
+enum FeatureCategory: String, CaseIterable, Identifiable, Hashable {
+    case create = "创作"
+    case tools = "工具"
+    case soon = "即将上线"
+
+    var id: String { rawValue }
+
+    var hint: String {
+        switch self {
+        case .create: return "先选主体，再在首页切换贴图样式"
+        case .tools: return "辅助能力，配合创作使用"
+        case .soon: return "规划中，敬请期待"
+        }
+    }
+}
+
 struct FeatureModule: Identifiable, Hashable {
     let id: String
     let title: String
     let subtitle: String
     let badge: String?
     let status: FeatureStatus
+    let category: FeatureCategory
     let systemImage: String
     /// 检测域；贴图样式见 `stickerModes`
     let faceKind: FaceKind
-    /// 本模块可选的贴图样式；空表示无贴图（如区域实时）
+    /// 本模块可选的贴图样式；空表示无静态贴图（如区域实时）
     let stickerModes: [OverlayMode]
 
     var isAvailable: Bool { status == .live }
@@ -41,41 +61,23 @@ struct FeatureModule: Identifiable, Hashable {
 enum FeatureCatalog {
     static let all: [FeatureModule] = [
         FeatureModule(
-            id: "ah_ah_ah",
-            title: "啊啊啊",
-            subtitle: "宠物双眼一体眼罩贴图",
+            id: "pet_stickers",
+            title: "宠物贴图",
+            subtitle: "猫狗正脸 · 啊啊啊 / 加一道光 / 小丑鼻子",
             badge: "热门",
             status: .live,
-            systemImage: "eye.fill",
+            category: .create,
+            systemImage: "pawprint.fill",
             faceKind: .pet,
-            stickerModes: [.ahAhAh]
-        ),
-        FeatureModule(
-            id: "add_light",
-            title: "加一道光",
-            subtitle: "宠物左右眼各贴同一张图",
-            badge: "推荐",
-            status: .live,
-            systemImage: "sparkles",
-            faceKind: .pet,
-            stickerModes: [.addLight]
-        ),
-        FeatureModule(
-            id: "clown_nose",
-            title: "小丑鼻子",
-            subtitle: "识别鼻尖贴上红色小丑鼻",
-            badge: "新品",
-            status: .live,
-            systemImage: "nose.fill",
-            faceKind: .pet,
-            stickerModes: [.clownNose]
+            stickerModes: [.ahAhAh, .addLight, .clownNose]
         ),
         FeatureModule(
             id: "anime_eyes",
             title: "动漫贴眼",
-            subtitle: "二次元脸检测，可选啊啊啊 / 加一道光",
+            subtitle: "二次元正脸 · 啊啊啊 / 加一道光",
             badge: "新品",
             status: .live,
+            category: .create,
             systemImage: "theatermasks.fill",
             faceKind: .anime,
             stickerModes: [.ahAhAh, .addLight]
@@ -83,9 +85,10 @@ enum FeatureCatalog {
         FeatureModule(
             id: "region_live",
             title: "区域贴眼",
-            subtitle: "框选屏幕区域实时贴图",
+            subtitle: "框选屏幕区域，实时叠加当前贴图",
             badge: "电脑端",
             status: .live,
+            category: .tools,
             systemImage: "rectangle.dashed.badge.record",
             faceKind: .pet,
             stickerModes: []
@@ -96,6 +99,7 @@ enum FeatureCatalog {
             subtitle: "一次处理多张照片",
             badge: "即将上线",
             status: .comingSoon,
+            category: .soon,
             systemImage: "square.stack.3d.up.fill",
             faceKind: .pet,
             stickerModes: []
@@ -103,9 +107,10 @@ enum FeatureCatalog {
         FeatureModule(
             id: "video_frame",
             title: "视频抽帧",
-            subtitle: "从视频截取正脸再贴眼",
+            subtitle: "从视频截取正脸再贴图",
             badge: "即将上线",
             status: .comingSoon,
+            category: .soon,
             systemImage: "film",
             faceKind: .pet,
             stickerModes: []
@@ -116,6 +121,7 @@ enum FeatureCatalog {
             subtitle: "更多眼罩与素材包",
             badge: "策划中",
             status: .comingSoon,
+            category: .soon,
             systemImage: "storefront.fill",
             faceKind: .pet,
             stickerModes: []
@@ -128,8 +134,7 @@ enum FeatureCatalog {
         all.first { $0.id == id }
     }
 
-    /// 宠物单贴图玩法：按 OverlayMode 反查
-    static func petModule(for mode: OverlayMode) -> FeatureModule? {
-        live.first { $0.faceKind == .pet && $0.stickerModes == [mode] }
+    static func modules(in category: FeatureCategory) -> [FeatureModule] {
+        all.filter { $0.category == category }
     }
 }

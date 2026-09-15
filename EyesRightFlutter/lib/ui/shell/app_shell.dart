@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../state/app_session.dart';
 import '../home/home_tab.dart';
+import '../home/studio_tab.dart';
 import '../mine/mine_tab.dart';
 import '../theme.dart';
 import '../workshop/workshop_tab.dart';
@@ -19,6 +20,8 @@ class _AppShellState extends State<AppShell> {
   int _index = 0;
 
   void goHome() => setState(() => _index = 0);
+  void goStudio() => setState(() => _index = 1);
+  void goWorkshop() => setState(() => _index = 2);
 
   @override
   Widget build(BuildContext context) {
@@ -26,8 +29,9 @@ class _AppShellState extends State<AppShell> {
       body: IndexedStack(
         index: _index,
         children: [
-          const HomeTab(),
-          WorkshopTab(onOpenHome: goHome),
+          HomeTab(onOpenStudio: goStudio, onOpenWorkshop: goWorkshop),
+          const StudioTab(),
+          WorkshopTab(onOpenStudio: goStudio),
           const MineTab(),
         ],
       ),
@@ -57,6 +61,11 @@ class _AppShellState extends State<AppShell> {
                 icon: const Icon(Icons.home_outlined),
                 selectedIcon: Icon(Icons.home_rounded, color: AppTheme.pink),
                 label: '首页',
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.auto_fix_outlined),
+                selectedIcon: Icon(Icons.auto_fix_rounded, color: AppTheme.pink),
+                label: '创作',
               ),
               NavigationDestination(
                 icon: const Icon(Icons.grid_view_outlined),
@@ -125,7 +134,7 @@ class BrandHeader extends StatelessWidget {
                 Consumer<AppSession>(
                   builder: (_, session, __) {
                     return Text(
-                      '当前玩法 · ${session.selectedFeature.title}',
+                      '当前 · ${session.selectedFeature.title}',
                       style: GoogleFonts.notoSansSc(
                         fontSize: 12,
                         color: AppTheme.textSecondary,

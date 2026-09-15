@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import '../../features/app_feature.dart';
 import '../../state/app_session.dart';
 import '../shell/app_shell.dart';
 import '../theme.dart';
 
+/// 首页看板：入口卡片，真正贴图在「创作」页
 class HomeTab extends StatelessWidget {
-  const HomeTab({super.key});
+  const HomeTab({super.key, required this.onOpenStudio, required this.onOpenWorkshop});
+
+  final VoidCallback onOpenStudio;
+  final VoidCallback onOpenWorkshop;
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +25,7 @@ class HomeTab extends StatelessWidget {
           border: Border.all(color: AppTheme.border),
         ),
         child: Text(
-          '创作',
+          '首页',
           style: GoogleFonts.notoSansSc(
             fontSize: 12,
             fontWeight: FontWeight.w700,
@@ -31,25 +35,108 @@ class HomeTab extends StatelessWidget {
       ),
       child: Consumer<AppSession>(
         builder: (context, session, _) {
-          return Column(
+          final create = FeatureCatalog.modulesIn(FeatureCategory.create)
+              .where((f) => f.isAvailable)
+              .toList();
+          final tools = FeatureCatalog.modulesIn(FeatureCategory.tools)
+              .where((f) => f.isAvailable)
+              .toList();
+
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
             children: [
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                  children: [
-                    _Stage(session: session),
-                    if (session.selectedFeature.hasStickerPicker) ...[
-                      const SizedBox(height: 12),
-                      _StickerPicker(session: session),
-                    ],
-                    const SizedBox(height: 12),
-                    _PreviewTabs(session: session),
-                    const SizedBox(height: 14),
-                    _Tip(session: session),
-                  ],
+              Text(
+                '本地贴图，选主体开始',
+                style: GoogleFonts.notoSansSc(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.textPrimary,
                 ),
               ),
-              _BottomBar(session: session),
+              const SizedBox(height: 6),
+              Text(
+                '照片只在本机处理。点卡片进入创作台。',
+                style: GoogleFonts.notoSansSc(
+                  fontSize: 13,
+                  color: AppTheme.textSecondary,
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 18),
+              _SectionLabel(title: '开始创作', hint: '进入创作台选图贴图'),
+              const SizedBox(height: 10),
+              for (final feature in create) ...[
+                _StartCard(
+                  feature: feature,
+                  selected: session.selectedFeature.id == feature.id,
+                  onTap: () {
+                    session.selectFeature(feature);
+                    onOpenStudio();
+                  },
+                ),
+                const SizedBox(height: 10),
+              ],
+              if (tools.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _SectionLabel(title: '工具', hint: '配合创作使用'),
+                const SizedBox(height: 10),
+                for (final feature in tools) ...[
+                  _StartCard(
+                    feature: feature,
+                    selected: session.selectedFeature.id == feature.id,
+                    onTap: () {
+                      session.selectFeature(feature);
+                      onOpenStudio();
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              ],
+              const SizedBox(height: 6),
+              Material(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                child: InkWell(
+                  onTap: onOpenWorkshop,
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppTheme.border),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.grid_view_rounded, color: AppTheme.pink),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '浏览全部玩法',
+                                style: GoogleFonts.notoSansSc(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.textPrimary,
+                                ),
+                              ),
+                              Text(
+                                '即将上线与素材规划也在这里',
+                                style: GoogleFonts.notoSansSc(
+                                  fontSize: 12,
+                                  color: AppTheme.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.chevron_right_rounded, color: AppTheme.textHint),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ],
           );
         },
@@ -58,350 +145,107 @@ class HomeTab extends StatelessWidget {
   }
 }
 
-class _Stage extends StatelessWidget {
-  const _Stage({required this.session});
-  final AppSession session;
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.title, required this.hint});
+  final String title;
+  final String hint;
 
   @override
   Widget build(BuildContext context) {
-    final bytes = session.previewTab == PreviewTab.result
-        ? session.resultBytes
-        : session.sourceBytes;
-
-    return AspectRatio(
-      aspectRatio: 4 / 3,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: AppTheme.stage,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.12),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              if (bytes != null)
-                InteractiveViewer(
-                  minScale: 1,
-                  maxScale: 4,
-                  child: Image.memory(bytes, fit: BoxFit.contain),
-                )
-              else
-                Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.add_photo_alternate_outlined,
-                        size: 52,
-                        color: Colors.white.withValues(alpha: 0.35),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        session.ready ? '点下方相册或拍照开始' : '模型加载中…',
-                        style: GoogleFonts.notoSansSc(
-                          color: Colors.white.withValues(alpha: 0.55),
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              if (session.busy)
-                ColoredBox(
-                  color: Colors.black.withValues(alpha: 0.35),
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const SizedBox(
-                          width: 36,
-                          height: 36,
-                          child: CircularProgressIndicator(
-                            color: AppTheme.pink,
-                            strokeWidth: 3,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          '贴眼处理中…',
-                          style: GoogleFonts.notoSansSc(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
+    return Row(
+      children: [
+        Text(
+          title,
+          style: GoogleFonts.notoSansSc(
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+            color: AppTheme.textPrimary,
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _StickerPicker extends StatelessWidget {
-  const _StickerPicker({required this.session});
-  final AppSession session;
-
-  @override
-  Widget build(BuildContext context) {
-    final modes = session.selectedFeature.stickerModes;
-    return Container(
-      height: 40,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: Row(
-        children: [
-          for (final mode in modes)
-            Expanded(
-              child: InkWell(
-                borderRadius: BorderRadius.circular(9),
-                onTap: session.busy ? null : () => session.setStickerMode(mode),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  margin: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                    color: session.stickerMode == mode
-                        ? AppTheme.pinkSoft
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    mode.label,
-                    style: GoogleFonts.notoSansSc(
-                      fontSize: 14,
-                      fontWeight: session.stickerMode == mode
-                          ? FontWeight.w700
-                          : FontWeight.w500,
-                      color: session.stickerMode == mode
-                          ? AppTheme.pink
-                          : AppTheme.textSecondary,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PreviewTabs extends StatelessWidget {
-  const _PreviewTabs({required this.session});
-  final AppSession session;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 40,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: Row(
-        children: [
-          _item('原图', PreviewTab.source, session.sourceBytes != null),
-          _item('结果', PreviewTab.result, session.resultBytes != null),
-        ],
-      ),
-    );
-  }
-
-  Widget _item(String label, PreviewTab tab, bool enabled) {
-    final selected = session.previewTab == tab;
-    return Expanded(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(9),
-        onTap: !enabled || session.busy
-            ? null
-            : () => session.setPreviewTab(tab),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          margin: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            color: selected ? AppTheme.pinkSoft : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          alignment: Alignment.center,
+        const SizedBox(width: 8),
+        Expanded(
           child: Text(
-            label,
+            hint,
             style: GoogleFonts.notoSansSc(
-              fontSize: 14,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-              color: !enabled
-                  ? AppTheme.textHint
-                  : selected
-                      ? AppTheme.pink
-                      : AppTheme.textSecondary,
+              fontSize: 11,
+              color: AppTheme.textSecondary,
             ),
           ),
         ),
-      ),
+      ],
     );
   }
 }
 
-class _Tip extends StatelessWidget {
-  const _Tip({required this.session});
-  final AppSession session;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 220),
-      child: Container(
-        key: ValueKey(session.status),
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppTheme.border),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.info_outline_rounded, size: 18, color: AppTheme.blue),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                session.status,
-                style: GoogleFonts.notoSansSc(
-                  fontSize: 13,
-                  color: AppTheme.textSecondary,
-                  height: 1.35,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BottomBar extends StatelessWidget {
-  const _BottomBar({required this.session});
-  final AppSession session;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: AppTheme.border.withValues(alpha: 0.9))),
-      ),
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            _ActionIcon(
-              icon: Icons.photo_library_outlined,
-              label: '相册',
-              onTap: (!session.ready || session.busy)
-                  ? null
-                  : () => session.pick(ImageSource.gallery),
-            ),
-            _ActionIcon(
-              icon: Icons.photo_camera_outlined,
-              label: '拍照',
-              onTap: (!session.ready || session.busy)
-                  ? null
-                  : () => session.pick(ImageSource.camera),
-            ),
-            _ActionIcon(
-              icon: Icons.save_alt_rounded,
-              label: '保存',
-              onTap: (session.resultBytes == null || session.busy)
-                  ? null
-                  : () async {
-                      final err = await session.save();
-                      if (context.mounted && err == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('已保存到相册')),
-                        );
-                      }
-                    },
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: SizedBox(
-                height: 46,
-                child: FilledButton(
-                  onPressed: (!session.ready ||
-                          session.busy ||
-                          session.sourceBytes == null)
-                      ? null
-                      : session.process,
-                  child: session.busy
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.4,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(
-                          '开始贴眼',
-                          style: GoogleFonts.notoSansSc(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ActionIcon extends StatelessWidget {
-  const _ActionIcon({
-    required this.icon,
-    required this.label,
+class _StartCard extends StatelessWidget {
+  const _StartCard({
+    required this.feature,
+    required this.selected,
     required this.onTap,
   });
 
-  final IconData icon;
-  final String label;
-  final VoidCallback? onTap;
+  final AppFeature feature;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final enabled = onTap != null;
-    final color = enabled ? AppTheme.textPrimary : AppTheme.textHint;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: SizedBox(
-        width: 58,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 22, color: color),
-            const SizedBox(height: 2),
-            Text(label, style: GoogleFonts.notoSansSc(fontSize: 11, color: color)),
-          ],
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: selected ? AppTheme.pink : AppTheme.border,
+              width: selected ? 1.6 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppTheme.pinkSoft,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(feature.icon, color: AppTheme.pink),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      feature.title,
+                      style: GoogleFonts.notoSansSc(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      feature.subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.notoSansSc(
+                        fontSize: 12,
+                        height: 1.3,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_circle_right_rounded, color: AppTheme.pink.withValues(alpha: 0.85)),
+            ],
+          ),
         ),
       ),
     );
